@@ -14,7 +14,7 @@ import {
 } from "./contractTemplate.js";
 import { saveContractPdf, CONTRACTS_DIR } from "./contractPdf.js";
 import { buildPrevia } from "./previaDiagnostico.js";
-import { getAiConfig, suggestLeadReply } from "./aiAssist.js";
+import { getAiConfig, suggestLeadReply, chatWithLead } from "./aiAssist.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8787);
@@ -178,6 +178,76 @@ async function main() {
     res.json({ configured: cfg.configured, provider: cfg.provider });
   });
 
+  app.post("/api/public/ai/chat", async (req, res) => {
+    try {
+      let sessionId = String(req.body?.session_id || "").trim();
+      if (!sessionId || sessionId.length > 80) {
+        sessionId = `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+      }
+      const message = String(req.body?.message || "").trim();
+      if (message.length < 1) {
+        return res.status(400).json({ error: "Digite uma mensagem." });
+      }
+      if (message.length > 2000) {
+        return res.status(400).json({ error: "Mensagem muito longa." });
+      }
+
+      const telefone = normalizePhone(req.body?.telefone);
+      let lead = null;
+      if (req.body?.lead_id) {
+        lead = db.getLead(Number(req.body.lead_id));
+      } else if (telefone.length >= 10) {
+        lead = db.findLeadByTelefone(telefone);
+      }
+
+      db.addChatMessage({
+        sessionId,
+        leadId: lead?.id || null,
+        role: "user",
+        content: message,
+      });
+
+      const history = db.listChatBySession(sessionId).map((m) => ({
+        role: m.role === "assistant" ? "assistant" : m.role === "user" ? "user" : "user",
+        content: m.content,
+      }));
+      // histórico já inclui a msg atual; chatWithLead adiciona de novo — passar sem a última user
+      const historyForModel = history.slice(0, -1);
+
+      const result = await chatWithLead({
+        db,
+        lead,
+        history: historyForModel,
+        message,
+      });
+
+      db.addChatMessage({
+        sessionId,
+        leadId: lead?.id || null,
+        role: "assistant",
+        content: result.texto,
+      });
+
+      if (lead?.id) {
+        db.bindChatSessionToLead(sessionId, lead.id);
+      }
+
+      res.json({
+        ok: true,
+        session_id: sessionId,
+        reply: result.texto,
+        fonte: result.fonte,
+        modelo: result.modelo,
+        aviso: result.aviso || null,
+        lead_id: lead?.id || null,
+        configured: getAiConfig(db).configured,
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(502).json({ error: e.message || "Falha na conversa com a IA." });
+    }
+  });
+
   app.post("/api/leads/:id/ai-reply", requireAuth, async (req, res) => {
     const id = Number(req.params.id);
     const lead = db.getLead(id);
@@ -286,11 +356,13 @@ async function main() {
       data: doc.data,
     }));
     const contracts = db.listContracts(id);
+    const chat = db.listChatByLead(id);
     res.json({
       lead,
       notes,
       documents,
       contracts,
+      chat,
       next: nextStatus(lead.status),
       consulta_valor: db.getConsultaValor(),
     });

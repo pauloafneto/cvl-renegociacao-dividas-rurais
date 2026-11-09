@@ -188,3 +188,56 @@ export async function suggestLeadReply({ db, lead, mensagemLead = "", notes = []
     `Provedor de IA "${provider}" ainda não implementado. Veja HANDOFF.md e ajuste server/aiAssist.js.`
   );
 }
+
+const CHAT_SYSTEM = `Você é o assistente do escritório Cavalcante & Valduga (dívidas rurais no Tocantins).
+Converse em português simples, tom de quem entende o campo — sem juridiquês.
+Objetivos: tirar dúvida, qualificar (tipo/faixa/situação da dívida), orientar próximo passo e convidar à consulta presencial/remota.
+Regras:
+- Não prometa desconto, acordo, aprovação bancária ou resultado.
+- Não invente lei, jurisprudência nem números de processo.
+- Se faltar dado, pergunte uma coisa de cada vez.
+- Respostas curtas (até ~6 linhas).
+- Quando fizer sentido, diga que a consulta aprofunda o caso com documento na mão.`;
+
+/**
+ * Conversa livre com o lead (site / assistente).
+ * history: [{ role: 'user'|'assistant'|'system', content }]
+ */
+export async function chatWithLead({ db, lead = null, history = [], message }) {
+  const apiKey = readKey(db);
+  const model = readModel(db);
+  const baseUrl = readBaseUrl(db);
+  const provider = readProvider(db);
+  const userMsg = String(message || "").trim();
+  if (!userMsg) throw new Error("Digite uma mensagem.");
+
+  if (!apiKey) {
+    return {
+      texto: fallbackRuralReply(lead || {}, userMsg),
+      fonte: "local_sem_chave",
+      modelo: null,
+      provider,
+      aviso: "IA sem chave — resposta local. Configure BUILT_IN_FORGE_* ou CVL_AI_API_KEY.",
+    };
+  }
+
+  const context = lead
+    ? `\nDados já conhecidos do lead:\n${leadContextBlock(lead)}`
+    : "\nAinda sem ficha completa do lead — conduza a conversa e peça nome/WhatsApp se for avançar.";
+
+  const messages = [
+    { role: "system", content: CHAT_SYSTEM + context },
+    ...history
+      .filter((m) => m && (m.role === "user" || m.role === "assistant") && m.content)
+      .slice(-16)
+      .map((m) => ({ role: m.role, content: String(m.content).slice(0, 2000) })),
+    { role: "user", content: userMsg.slice(0, 2000) },
+  ];
+
+  if (provider === "openai" || provider === "openai-compatible" || !provider) {
+    const result = await callOpenAiCompatible({ apiKey, baseUrl, model, messages });
+    return { texto: result.texto, fonte: "api", modelo: result.modelo, provider };
+  }
+
+  throw new Error(`Provedor de IA "${provider}" ainda não implementado.`);
+}

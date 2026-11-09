@@ -131,11 +131,19 @@
       value: 1,
       currency: "BRL",
     });
-    // Grava no CRM primeiro; se falhar, ainda abre o WhatsApp
-    await saveLeadToCrm(data, source);
+    // Grava no CRM primeiro; se falhar, avisa e ainda abre o WhatsApp
+    const saved = await saveLeadToCrm(data, source);
+    if (!saved) {
+      console.warn("Lead não gravou no CRM — conferir /api/public/leads");
+    } else {
+      try {
+        sessionStorage.setItem("cvl_last_lead_id", String(saved.id));
+      } catch (_) {}
+    }
     track("whatsapp_click", { source });
     const url = `https://api.whatsapp.com/send?phone=${WA_PHONE}&text=${encodeURIComponent(buildMessage(data, source))}`;
     window.open(appendAttribution(url), "_blank", "noopener");
+    return saved;
   }
 
   /* Form */
@@ -336,9 +344,12 @@
     e.preventDefault();
     const err = validateStep(3);
     if (err) return showError(err);
-    if (btnSubmit) btnSubmit.disabled = true;
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = "Gravando…";
+    }
     try {
-      await submitLead(
+      const saved = await submitLead(
         {
           produtor: radioValue("produtor"),
           faixa: radioValue("faixa"),
@@ -353,8 +364,14 @@
         },
         "form"
       );
+      if (!saved) {
+        showError("Não gravou no CRM agora. O WhatsApp pode abrir mesmo assim — tente de novo ou avise o escritório.");
+      }
     } finally {
-      if (btnSubmit) btnSubmit.disabled = false;
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = "Abrir WhatsApp";
+      }
     }
   });
 
@@ -577,33 +594,38 @@
     else setTimeout(askCurrent, 250);
   }
 
-  function finishChat() {
+  async function finishChat() {
     awaiting = null;
     setInputMode(null);
-    addMsg("Pronto. Toque abaixo para enviar o resumo ao escritório (mesmo funil do formulário).", "bot");
+    addMsg("Gravando seu caso no escritório…", "bot");
+    const payload = {
+      produtor: chatData.produtor,
+      faixa: chatData.faixa,
+      tipo: chatData.tipo,
+      atraso: chatData.atraso,
+      porte: chatData.porte,
+      cultura: chatData.cultura,
+      area: chatData.area,
+      local: chatData.local,
+      nome: chatData.nome,
+      telefone: chatData.telefone,
+    };
+    // Grava no CRM assim que a triagem termina (não depende do clique no WhatsApp)
+    const saved = await saveLeadToCrm(payload, "chat");
+    if (saved) {
+      addMsg("Pronto — já caiu na fila do escritório. Toque abaixo para abrir o WhatsApp com o resumo.", "bot");
+    } else {
+      addMsg("Não consegui gravar na fila agora. Ainda assim você pode enviar o resumo no WhatsApp.", "bot");
+    }
     const wrap = document.createElement("div");
     wrap.className = "wa-quick";
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.textContent = "Enviar para o escritório";
+    btn.textContent = "Abrir WhatsApp";
     btn.addEventListener("click", async () => {
       btn.disabled = true;
       try {
-        await submitLead(
-          {
-            produtor: chatData.produtor,
-            faixa: chatData.faixa,
-            tipo: chatData.tipo,
-            atraso: chatData.atraso,
-            porte: chatData.porte,
-            cultura: chatData.cultura,
-            area: chatData.area,
-            local: chatData.local,
-            nome: chatData.nome,
-            telefone: chatData.telefone,
-          },
-          "chat"
-        );
+        await submitLead(payload, "chat");
       } finally {
         btn.disabled = false;
       }

@@ -125,6 +125,16 @@ export async function ensureDb() {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      lead_id INTEGER,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE SET NULL
+    );
   `);
 
   // Migração: última interação para follow-up
@@ -568,6 +578,52 @@ export async function ensureDb() {
          FROM contracts WHERE id = ?`,
         [id]
       );
+    },
+    addChatMessage({ sessionId, leadId = null, role, content }) {
+      run(
+        db,
+        `INSERT INTO chat_messages (session_id, lead_id, role, content)
+         VALUES (?, ?, ?, ?)`,
+        [sessionId, leadId || null, role, content]
+      );
+      const row = oneFrom(db, "SELECT last_insert_rowid() AS id");
+      if (leadId) this.touchLead(leadId);
+      else persist(db);
+      return oneFrom(
+        db,
+        `SELECT id, session_id, lead_id, role, content, created_at
+         FROM chat_messages WHERE id = ?`,
+        [row.id]
+      );
+    },
+    listChatBySession(sessionId, limit = 40) {
+      return allFrom(
+        db,
+        `SELECT id, session_id, lead_id, role, content, created_at
+         FROM chat_messages
+         WHERE session_id = ?
+         ORDER BY datetime(created_at) ASC, id ASC
+         LIMIT ?`,
+        [sessionId, limit]
+      );
+    },
+    listChatByLead(leadId, limit = 80) {
+      return allFrom(
+        db,
+        `SELECT id, session_id, lead_id, role, content, created_at
+         FROM chat_messages
+         WHERE lead_id = ?
+         ORDER BY datetime(created_at) ASC, id ASC
+         LIMIT ?`,
+        [leadId, limit]
+      );
+    },
+    bindChatSessionToLead(sessionId, leadId) {
+      run(db, "UPDATE chat_messages SET lead_id = ? WHERE session_id = ? AND lead_id IS NULL", [
+        leadId,
+        sessionId,
+      ]);
+      persist(db);
     },
   };
 
