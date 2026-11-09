@@ -18,10 +18,13 @@ renegociacao-dividas-rurais/
 
 Arquivo único: `server/aiAssist.js`
 
-- Lê a chave de `settings.ai_api_key` (painel) **ou** `CVL_AI_API_KEY` / `OPENAI_API_KEY`
+- Lê a chave nesta ordem:
+  1. `settings.ai_api_key` (painel Configurações)
+  2. `CVL_AI_API_KEY` / `OPENAI_API_KEY`
+  3. **Teste ImprimeMais:** `BUILT_IN_FORGE_API_KEY` + `BUILT_IN_FORGE_API_URL`
 - Campo no painel **sempre vazio** ao abrir — cole a chave só quando tiver
 - Sem chave: rascunho local (não chama API)
-- Trocar de provedor: editar `suggestLeadReply` / `callOpenAiCompatible` nesse arquivo
+- Trocar para o provedor do amigo: configurar painel/env ou editar `server/aiAssist.js`
 
 Rotas:
 

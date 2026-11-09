@@ -13,31 +13,46 @@
 
 const DEFAULT_BASE = "https://api.openai.com/v1";
 const DEFAULT_MODEL = "gpt-4o-mini";
+// Mesma família do ImprimeMais (teste); o amigo troca depois na Configuração / env
+const FORGE_DEFAULT_MODEL = "gemini-flash-lite-latest";
 
 function readKey(db) {
   const fromDb = String(db.getSetting("ai_api_key")?.value || "").trim();
   if (fromDb) return fromDb;
-  return String(process.env.CVL_AI_API_KEY || process.env.OPENAI_API_KEY || "").trim();
+  // Teste ImprimeMais: reaproveita a forge (sem hardcode no código)
+  return String(
+    process.env.CVL_AI_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.BUILT_IN_FORGE_API_KEY ||
+      ""
+  ).trim();
 }
 
 function readProvider(db) {
   return String(db.getSetting("ai_provider")?.value || "openai").trim() || "openai";
 }
 
+function usingForgeEnv() {
+  return Boolean(String(process.env.BUILT_IN_FORGE_API_KEY || "").trim());
+}
+
 function readModel(db) {
-  return (
-    String(db.getSetting("ai_model")?.value || "").trim() ||
-    process.env.CVL_AI_MODEL ||
-    DEFAULT_MODEL
-  );
+  const fromDb = String(db.getSetting("ai_model")?.value || "").trim();
+  if (fromDb) return fromDb;
+  if (process.env.CVL_AI_MODEL) return process.env.CVL_AI_MODEL;
+  if (usingForgeEnv()) return FORGE_DEFAULT_MODEL;
+  return DEFAULT_MODEL;
 }
 
 function readBaseUrl(db) {
-  return (
-    String(db.getSetting("ai_base_url")?.value || "").trim() ||
-    process.env.CVL_AI_BASE_URL ||
-    DEFAULT_BASE
-  );
+  const fromDb = String(db.getSetting("ai_base_url")?.value || "").trim();
+  if (fromDb) return fromDb;
+  if (process.env.CVL_AI_BASE_URL) return process.env.CVL_AI_BASE_URL;
+  // Forge do ImprimeMais já vem com base OpenAI-compatível
+  if (process.env.BUILT_IN_FORGE_API_URL) {
+    return String(process.env.BUILT_IN_FORGE_API_URL).replace(/\/$/, "");
+  }
+  return DEFAULT_BASE;
 }
 
 export function getAiConfig(db) {

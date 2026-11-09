@@ -56,46 +56,22 @@
       </section>
 
       <div class="toolbar">
-        <label>
-          <span class="eyebrow" style="display:block;margin-bottom:.35rem">Status</span>
-          <select id="filter-status">
-            <option value="">Todos</option>
-            <option value="novo">Novo</option>
-            <option value="triagem">Triagem</option>
-            <option value="atendimento">Atendimento</option>
-            <option value="proposta">Proposta</option>
-            <option value="fechado">Fechado</option>
-            <option value="perdido">Perdido</option>
-          </select>
-        </label>
+        <p class="toolbar-hint">Quadro kanban — arraste o card para mudar o estágio. Clique para abrir a ficha.</p>
         <button type="button" class="btn btn--ghost btn--sm" id="btn-atrasados">
           Só atrasados (<span id="atrasados-count">0</span>)
         </button>
         <button type="button" class="btn btn--ghost btn--sm" id="btn-todos" hidden>Ver todos</button>
       </div>
 
-      <div class="layout">
-        <section class="card">
-          <div class="card__head">Leads</div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>WhatsApp</th>
-                  <th>Status</th>
-                  <th>Retorno</th>
-                </tr>
-              </thead>
-              <tbody id="leads-body"></tbody>
-            </table>
-            <p class="empty" id="leads-empty" hidden>Nenhum lead neste filtro.</p>
-          </div>
+      <div class="layout layout--kanban">
+        <section class="kanban-wrap" aria-label="Quadro de leads">
+          <div class="kanban" id="kanban-board"></div>
+          <p class="empty" id="leads-empty" hidden>Nenhum lead neste filtro.</p>
         </section>
 
         <aside class="card" id="detail-card">
           <div class="card__head">Ficha do lead</div>
-          <div class="placeholder" id="detail-empty">Selecione um lead na lista.</div>
+          <div class="placeholder" id="detail-empty">Selecione um lead no quadro.</div>
           <div class="detail" id="detail" hidden>
             <div>
               <h2 class="detail__title" id="d-nome">—</h2>

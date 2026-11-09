@@ -426,6 +426,93 @@ async function main() {
     res.download(filePath, downloadName);
   });
 
+  // Lead da triagem pública (formulário / chat) → grava no CRM e o site ainda abre WhatsApp
+  app.post("/api/public/leads", (req, res) => {
+    try {
+      const nome = String(req.body?.nome || "").trim();
+      const telefone = normalizePhone(req.body?.telefone);
+      const source = String(req.body?.source || "form").trim() || "form";
+      const produtor = String(req.body?.produtor || "").trim();
+      const faixa = String(req.body?.faixa || "").trim();
+      const tipo = String(req.body?.tipo || "").trim();
+      const atraso = String(req.body?.atraso || "").trim();
+      const porte = String(req.body?.porte || "").trim();
+      const cultura = String(req.body?.cultura || "").trim();
+      const area = String(req.body?.area || "").trim();
+      const local = String(req.body?.local || "").trim();
+
+      if (nome.length < 2) {
+        return res.status(400).json({ error: "Informe seu nome." });
+      }
+      if (telefone.length < 10) {
+        return res.status(400).json({ error: "WhatsApp com DDD inválido." });
+      }
+      if (produtor === "nao") {
+        return res.status(400).json({ error: "Canal focado em dívida rural." });
+      }
+
+      const obsLines = [
+        `Origem: triagem do site (${source === "chat" ? "chat" : "formulário"}).`,
+        produtor ? `Perfil: ${produtor}` : "",
+        faixa ? `Faixa: ${faixa}` : "",
+        tipo ? `Tipo: ${tipo}` : "",
+        atraso ? `Situação: ${atraso}` : "",
+      ].filter(Boolean);
+
+      let lead = db.findLeadByTelefone(telefone);
+      let created = false;
+      if (!lead) {
+        lead = db.createLead({
+          nome,
+          telefone,
+          email: "",
+          status: "novo",
+          observacoes: obsLines.join(" "),
+        });
+        created = true;
+      } else {
+        // Atualiza ficha se já existia (mesmo WhatsApp)
+        lead = db.updateLeadProfile(lead.id, {
+          nome,
+          telefone,
+        });
+        if (lead.status === "perdido") {
+          // não reabre automaticamente
+        } else if (lead.status === "fechado") {
+          // mantém fechado
+        } else if (!lead.observacoes || !String(lead.observacoes).includes("triagem do site")) {
+          db.addNote(lead.id, `Nova triagem pelo site (${source}).`);
+        }
+      }
+
+      lead = db.updateLeadProfile(lead.id, {
+        tipo_divida: tipo,
+        faixa_divida: faixa,
+        situacao_divida: atraso,
+        porte,
+        cultura,
+        area_ha: area,
+        local_producao: local,
+      });
+
+      if (created) {
+        db.addNote(
+          lead.id,
+          `Lead entrou pela triagem do site (${source}). WhatsApp aberto com o resumo.`
+        );
+      }
+
+      res.status(created ? 201 : 200).json({
+        ok: true,
+        created,
+        lead: { id: lead.id, nome: lead.nome, status: lead.status },
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Não foi possível gravar o lead." });
+    }
+  });
+
   // Upload público — após interesse real (nome + WhatsApp + arquivos)
   app.post("/api/public/documents", (req, res) => {
     uploadMiddleware(req, res, (err) => {

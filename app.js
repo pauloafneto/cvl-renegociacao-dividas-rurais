@@ -92,13 +92,47 @@
     return lines.join("\n");
   }
 
-  function submitLead(data, source) {
+  async function saveLeadToCrm(data, source) {
+    try {
+      const res = await fetch("/api/public/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source,
+          nome: data.nome,
+          telefone: data.telefone,
+          produtor: data.produtor,
+          faixa: data.faixa,
+          tipo: data.tipo,
+          atraso: data.atraso,
+          porte: data.porte,
+          cultura: data.cultura,
+          area: data.area,
+          local: data.local,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.warn("CRM lead:", json.error || res.status);
+        return null;
+      }
+      track("crm_lead_saved", { source, lead_id: json.lead?.id, created: json.created });
+      return json.lead || null;
+    } catch (e) {
+      console.warn("CRM lead falhou (WhatsApp segue):", e);
+      return null;
+    }
+  }
+
+  async function submitLead(data, source) {
     track("generate_lead", {
       event_category: "renegociacao_dividas_rurais",
       lead_source: source,
       value: 1,
       currency: "BRL",
     });
+    // Grava no CRM primeiro; se falhar, ainda abre o WhatsApp
+    await saveLeadToCrm(data, source);
     track("whatsapp_click", { source });
     const url = `https://api.whatsapp.com/send?phone=${WA_PHONE}&text=${encodeURIComponent(buildMessage(data, source))}`;
     window.open(appendAttribution(url), "_blank", "noopener");
@@ -298,25 +332,30 @@
     });
   }
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const err = validateStep(3);
     if (err) return showError(err);
-    submitLead(
-      {
-        produtor: radioValue("produtor"),
-        faixa: radioValue("faixa"),
-        tipo: radioValue("tipo"),
-        atraso: radioValue("atraso"),
-        porte: radioValue("porte"),
-        cultura: form.cultura.value.trim(),
-        area: form.area.value.trim(),
-        local: form.local.value.trim(),
-        nome: form.nome.value.trim(),
-        telefone: form.telefone.value.trim(),
-      },
-      "form"
-    );
+    if (btnSubmit) btnSubmit.disabled = true;
+    try {
+      await submitLead(
+        {
+          produtor: radioValue("produtor"),
+          faixa: radioValue("faixa"),
+          tipo: radioValue("tipo"),
+          atraso: radioValue("atraso"),
+          porte: radioValue("porte"),
+          cultura: form.cultura.value.trim(),
+          area: form.area.value.trim(),
+          local: form.local.value.trim(),
+          nome: form.nome.value.trim(),
+          telefone: form.telefone.value.trim(),
+        },
+        "form"
+      );
+    } finally {
+      if (btnSubmit) btnSubmit.disabled = false;
+    }
   });
 
   document.querySelectorAll('a[href*="api.whatsapp.com"]').forEach((anchor) => {
@@ -547,22 +586,27 @@
     const btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = "Enviar para o escritório";
-    btn.addEventListener("click", () => {
-      submitLead(
-        {
-          produtor: chatData.produtor,
-          faixa: chatData.faixa,
-          tipo: chatData.tipo,
-          atraso: chatData.atraso,
-          porte: chatData.porte,
-          cultura: chatData.cultura,
-          area: chatData.area,
-          local: chatData.local,
-          nome: chatData.nome,
-          telefone: chatData.telefone,
-        },
-        "chat"
-      );
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await submitLead(
+          {
+            produtor: chatData.produtor,
+            faixa: chatData.faixa,
+            tipo: chatData.tipo,
+            atraso: chatData.atraso,
+            porte: chatData.porte,
+            cultura: chatData.cultura,
+            area: chatData.area,
+            local: chatData.local,
+            nome: chatData.nome,
+            telefone: chatData.telefone,
+          },
+          "chat"
+        );
+      } finally {
+        btn.disabled = false;
+      }
     });
     wrap.appendChild(btn);
     bodyEl.appendChild(wrap);

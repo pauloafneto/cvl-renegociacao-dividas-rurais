@@ -8,6 +8,8 @@
     perdido: "Perdido",
   };
 
+  const KANBAN_STATUSES = ["novo", "triagem", "atendimento", "proposta", "fechado", "perdido"];
+
   let selectedId = null;
   let currentLead = null;
   let onlyAtrasados = false;
@@ -15,8 +17,7 @@
   const els = {
     userLabel: document.getElementById("user-label"),
     logout: document.getElementById("btn-logout"),
-    filter: document.getElementById("filter-status"),
-    body: document.getElementById("leads-body"),
+    board: document.getElementById("kanban-board"),
     empty: document.getElementById("leads-empty"),
     detailEmpty: document.getElementById("detail-empty"),
     detail: document.getElementById("detail"),
@@ -144,36 +145,103 @@
     }
   }
 
+  function highlightSelectedCard() {
+    if (!els.board) return;
+    els.board.querySelectorAll(".kanban-card").forEach((card) => {
+      card.classList.toggle("is-active", Number(card.dataset.id) === selectedId);
+    });
+  }
+
+  async function moveLeadToStatus(leadId, status) {
+    await api(`/api/leads/${leadId}/status`, {
+      method: "POST",
+      body: JSON.stringify({ status }),
+    });
+    await loadLeads();
+    if (selectedId === leadId) await openLead(leadId);
+    await loadStats();
+  }
+
+  function bindColumnDrop(colEl, status) {
+    colEl.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      colEl.classList.add("is-drop");
+    });
+    colEl.addEventListener("dragleave", () => colEl.classList.remove("is-drop"));
+    colEl.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      colEl.classList.remove("is-drop");
+      const leadId = Number(e.dataTransfer.getData("text/lead-id"));
+      const from = e.dataTransfer.getData("text/lead-status");
+      if (!leadId || from === status) return;
+      try {
+        await moveLeadToStatus(leadId, status);
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+  }
+
   async function loadLeads() {
-    const status = els.filter.value;
     const params = new URLSearchParams();
-    if (status) params.set("status", status);
     if (onlyAtrasados) params.set("atrasados", "1");
     const qs = params.toString() ? `?${params}` : "";
     const data = await api(`/api/leads${qs}`);
     els.atrasadosCount.textContent = String(data.atrasados_count ?? 0);
     els.btnAtrasados.hidden = onlyAtrasados;
     els.btnTodos.hidden = !onlyAtrasados;
-    els.body.innerHTML = "";
+
+    if (!els.board) return;
+    els.board.innerHTML = "";
     if (!data.leads.length) {
       els.empty.hidden = false;
       return;
     }
     els.empty.hidden = true;
+
+    const byStatus = Object.fromEntries(KANBAN_STATUSES.map((s) => [s, []]));
     for (const lead of data.leads) {
-      const tr = document.createElement("tr");
-      tr.dataset.id = String(lead.id);
-      if (selectedId === lead.id) tr.classList.add("is-active");
-      if (lead.atrasado) tr.classList.add("is-atrasado");
-      tr.innerHTML = `
-        <td><strong>${escapeHtml(lead.nome)}</strong></td>
-        <td>${escapeHtml(lead.telefone || "—")}</td>
-        <td><span class="${badgeClass(lead.status)}">${STATUS_LABEL[lead.status] || lead.status}</span></td>
-        <td>${retornoLabel(lead)}</td>
-      `;
-      tr.addEventListener("click", () => openLead(lead.id));
-      els.body.appendChild(tr);
+      if (byStatus[lead.status]) byStatus[lead.status].push(lead);
+      else byStatus.novo.push(lead);
     }
+
+    for (const status of KANBAN_STATUSES) {
+      const col = document.createElement("div");
+      col.className = `kanban-col kanban-col--${status}`;
+      col.dataset.status = status;
+      const list = byStatus[status] || [];
+      col.innerHTML = `
+        <div class="kanban-col__head">
+          <span>${escapeHtml(STATUS_LABEL[status])}</span>
+          <strong>${list.length}</strong>
+        </div>
+        <div class="kanban-col__body" data-drop="${status}"></div>
+      `;
+      const body = col.querySelector(".kanban-col__body");
+      bindColumnDrop(body, status);
+      for (const lead of list) {
+        const card = document.createElement("article");
+        card.className = "kanban-card" + (lead.atrasado ? " is-atrasado" : "");
+        card.draggable = true;
+        card.dataset.id = String(lead.id);
+        card.dataset.status = lead.status;
+        card.innerHTML = `
+          <strong>${escapeHtml(lead.nome)}</strong>
+          <span class="kanban-card__meta">${escapeHtml(lead.telefone || "—")}</span>
+          <span class="kanban-card__meta">${retornoLabel(lead)}</span>
+        `;
+        card.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/lead-id", String(lead.id));
+          e.dataTransfer.setData("text/lead-status", lead.status);
+          card.classList.add("is-dragging");
+        });
+        card.addEventListener("dragend", () => card.classList.remove("is-dragging"));
+        card.addEventListener("click", () => openLead(lead.id));
+        body.appendChild(card);
+      }
+      els.board.appendChild(col);
+    }
+    highlightSelectedCard();
   }
 
   function escapeHtml(str) {
@@ -285,14 +353,8 @@
     renderContracts(data.contracts || [], data.lead.id);
     renderDocs(data.documents || [], data.lead.id);
     renderNotes(data.notes);
-    [...els.body.querySelectorAll("tr")].forEach((tr) => {
-      tr.classList.toggle("is-active", Number(tr.dataset.id) === id);
-    });
+    highlightSelectedCard();
   }
-
-  els.filter.addEventListener("change", () => {
-    loadLeads().catch((e) => alert(e.message));
-  });
 
   els.btnContractToggle.addEventListener("click", () => {
     els.contractBox.hidden = !els.contractBox.hidden;
