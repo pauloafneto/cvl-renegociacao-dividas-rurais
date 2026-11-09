@@ -8,140 +8,122 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./admin.css?v=20261109c" />
+  <link rel="stylesheet" href="./admin.css?v=20261109d" />
 </head>
-<body>
+<body class="app">
   <header class="top">
-    <div class="wrap top__row">
-      <a class="brand" href="./index.html">CVL · <span>Leads</span></a>
-      <a class="btn btn--ghost btn--sm" href="./configuracoes.html">Configurações</a>
-      <span class="top__meta" id="user-label">…</span>
-      <button type="button" class="btn btn--ghost btn--sm" id="btn-logout">Sair</button>
-    </div>
-  </header>
-
-  <main class="page">
-    <div class="wrap">
-      <div class="page__head">
-        <p class="eyebrow">Painel admin</p>
-        <div class="accent-bar" aria-hidden="true"></div>
-        <h1>Fila de leads</h1>
+    <div class="top__row">
+      <a class="brand" href="./index.html">CVL · <span>Kanban</span></a>
+      <div class="kpis" id="stats-box" aria-label="Resumo">
+        <div class="kpi"><span>Entraram</span><strong id="st-total">—</strong></div>
+        <div class="kpi"><span>Fechados</span><strong id="st-fechados">—</strong></div>
+        <div class="kpi"><span>Perdidos</span><strong id="st-perdidos">—</strong></div>
+        <div class="kpi"><span>Taxa</span><strong id="st-taxa">—</strong></div>
+        <div class="kpi"><span>Média</span><strong id="st-media">—</strong></div>
       </div>
-
-      <section class="stats" id="stats-box" aria-label="Resumo de conversão">
-        <div class="stats__card">
-          <span class="stats__label">Entraram</span>
-          <strong class="stats__value" id="st-total">—</strong>
-        </div>
-        <div class="stats__card">
-          <span class="stats__label">Fechados</span>
-          <strong class="stats__value" id="st-fechados">—</strong>
-        </div>
-        <div class="stats__card">
-          <span class="stats__label">Perdidos</span>
-          <strong class="stats__value" id="st-perdidos">—</strong>
-        </div>
-        <div class="stats__card">
-          <span class="stats__label">Taxa fechamento</span>
-          <strong class="stats__value" id="st-taxa">—</strong>
-        </div>
-        <div class="stats__card">
-          <span class="stats__label">Média até fechar</span>
-          <strong class="stats__value" id="st-media">—</strong>
-        </div>
-        <div class="stats__card stats__card--wide">
-          <span class="stats__label">Tempo médio por estágio (dias)</span>
-          <div class="stats__stages" id="st-stages"></div>
-        </div>
-      </section>
-
-      <div class="toolbar">
-        <p class="toolbar-hint">Quadro kanban — arraste o card para mudar o estágio. Clique para abrir a ficha.</p>
+      <div class="top__actions">
         <button type="button" class="btn btn--ghost btn--sm" id="btn-atrasados">
           Só atrasados (<span id="atrasados-count">0</span>)
         </button>
         <button type="button" class="btn btn--ghost btn--sm" id="btn-todos" hidden>Ver todos</button>
-      </div>
-
-      <div class="layout layout--kanban">
-        <section class="kanban-wrap" aria-label="Quadro de leads">
-          <div class="kanban" id="kanban-board"></div>
-          <p class="empty" id="leads-empty" hidden>Nenhum lead neste filtro.</p>
-        </section>
-
-        <aside class="card" id="detail-card">
-          <div class="card__head">Ficha do lead</div>
-          <div class="placeholder" id="detail-empty">Selecione um lead no quadro.</div>
-          <div class="detail" id="detail" hidden>
-            <div>
-              <h2 class="detail__title" id="d-nome">—</h2>
-              <div class="meta">
-                <div><strong>WhatsApp:</strong> <span id="d-fone">—</span></div>
-                <div><strong>E-mail:</strong> <span id="d-email">—</span></div>
-                <div><strong>Status:</strong> <span id="d-status" class="badge">—</span></div>
-                <div><strong>Entrada:</strong> <span id="d-entrada">—</span></div>
-                <div><strong>Última interação:</strong> <span id="d-interacao">—</span></div>
-                <div id="d-atraso-wrap" hidden>
-                  <span class="badge badge--atrasado" id="d-atraso">—</span>
-                </div>
-              </div>
-            </div>
-            <div class="actions">
-              <button type="button" class="btn" id="btn-advance">Avançar estágio</button>
-              <button type="button" class="btn btn--ghost btn--sm" id="btn-contract-toggle">Gerar contrato</button>
-              <button type="button" class="btn btn--danger btn--sm" id="btn-lost">Marcar perdido</button>
-            </div>
-            <div class="contract-box" id="contract-box" hidden>
-              <p class="eyebrow">Contrato de consulta</p>
-              <p class="contract-hint">Preencha os dados que faltam. O texto do contrato fica em <code>templates/contrato-consulta.json</code>.</p>
-              <div class="contract-grid">
-                <label>CPF<input id="c-cpf" maxlength="18" placeholder="000.000.000-00" /></label>
-                <label>Endereço<input id="c-endereco" maxlength="160" placeholder="Cidade/UF ou endereço" /></label>
-                <label>Tipo da dívida<input id="c-tipo" maxlength="80" placeholder="Custeio, CPR…" /></label>
-                <label>Faixa<input id="c-faixa" maxlength="80" placeholder="R$ 200 mil a 1 milhão" /></label>
-                <label>Situação<input id="c-situacao" maxlength="80" placeholder="Atrasado / cobrança" /></label>
-                <label>Porte<input id="c-porte" maxlength="40" placeholder="Pronaf / Pronamp" /></label>
-                <label>Cultura<input id="c-cultura" maxlength="80" placeholder="Soja, gado…" /></label>
-                <label>Área (ha)<input id="c-area" maxlength="40" placeholder="120" /></label>
-                <label>Local<input id="c-local" maxlength="80" placeholder="TO — município" /></label>
-              </div>
-              <button type="button" class="btn btn--sm" id="btn-contract-generate">Gerar PDF</button>
-              <p class="err" id="contract-error" hidden></p>
-            </div>
-            <div class="docs">
-              <p class="eyebrow">Contratos gerados</p>
-              <div class="docs__list" id="contracts-list"></div>
-            </div>
-            <div class="docs">
-              <p class="eyebrow">Documentos</p>
-              <div class="docs__list" id="docs-list"></div>
-            </div>
-            <div class="ai-box">
-              <p class="eyebrow">Assistente de resposta</p>
-              <p class="contract-hint">Gera texto simples, tom de campo, para o WhatsApp. Sem chave de IA, usa rascunho local. Configure a chave em Configurações (campo vazio até colar).</p>
-              <label class="ai-label">Dúvida ou mensagem do lead (opcional)
-                <textarea id="ai-prompt" maxlength="2000" placeholder="Cole o que o lead perguntou…"></textarea>
-              </label>
-              <div class="actions">
-                <button type="button" class="btn btn--sm" id="btn-ai">Sugerir resposta</button>
-                <button type="button" class="btn btn--ghost btn--sm" id="btn-ai-note" hidden>Salvar como anotação</button>
-              </div>
-              <p class="err" id="ai-error" hidden></p>
-              <p class="ai-aviso" id="ai-aviso" hidden></p>
-              <textarea id="ai-reply" hidden readonly></textarea>
-            </div>
-            <div class="notes">
-              <p class="eyebrow">Anotações</p>
-              <textarea id="note-text" placeholder="Escreva uma anotação…" maxlength="2000"></textarea>
-              <button type="button" class="btn btn--sm" id="btn-note">Salvar anotação</button>
-              <div class="notes__list" id="notes-list"></div>
-            </div>
-          </div>
-        </aside>
+        <a class="btn btn--ghost btn--sm" href="./configuracoes.html">Configurações</a>
+        <span class="top__meta" id="user-label">…</span>
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-logout">Sair</button>
       </div>
     </div>
+  </header>
+
+  <main class="workspace">
+    <section class="board-pane" aria-label="Quadro kanban">
+      <div class="kanban" id="kanban-board"></div>
+      <p class="empty board-empty" id="leads-empty" hidden>Nenhum lead neste filtro.</p>
+      <div class="stage-times" id="st-stages" hidden></div>
+    </section>
+
+    <aside class="detail-pane card" id="detail-card">
+      <div class="card__head">Ficha do lead</div>
+      <div class="detail-scroll">
+        <div class="placeholder" id="detail-empty">Clique num card para abrir a ficha.</div>
+        <div class="detail" id="detail" hidden>
+          <div class="detail__hero">
+            <h2 class="detail__title" id="d-nome">—</h2>
+            <div class="detail__chips">
+              <span id="d-status" class="badge">—</span>
+              <span id="d-atraso-wrap" hidden><span class="badge badge--atrasado" id="d-atraso">—</span></span>
+            </div>
+          </div>
+
+          <dl class="facts">
+            <div><dt>WhatsApp</dt><dd id="d-fone">—</dd></div>
+            <div><dt>E-mail</dt><dd id="d-email">—</dd></div>
+            <div><dt>Faixa</dt><dd id="d-faixa">—</dd></div>
+            <div><dt>Tipo</dt><dd id="d-tipo">—</dd></div>
+            <div><dt>Situação</dt><dd id="d-situacao">—</dd></div>
+            <div><dt>Local</dt><dd id="d-local">—</dd></div>
+            <div><dt>Cultura</dt><dd id="d-cultura">—</dd></div>
+            <div><dt>Porte</dt><dd id="d-porte">—</dd></div>
+            <div><dt>Entrada</dt><dd id="d-entrada">—</dd></div>
+            <div><dt>Última interação</dt><dd id="d-interacao">—</dd></div>
+          </dl>
+
+          <div class="actions">
+            <button type="button" class="btn" id="btn-advance">Avançar estágio</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="btn-contract-toggle">Gerar contrato</button>
+            <button type="button" class="btn btn--danger btn--sm" id="btn-lost">Marcar perdido</button>
+          </div>
+
+          <div class="contract-box" id="contract-box" hidden>
+            <p class="eyebrow">Contrato de consulta</p>
+            <p class="contract-hint">Complete o que faltar e gere o PDF.</p>
+            <div class="contract-grid">
+              <label>CPF<input id="c-cpf" maxlength="18" placeholder="000.000.000-00" /></label>
+              <label>Endereço<input id="c-endereco" maxlength="160" placeholder="Cidade/UF ou endereço" /></label>
+              <label>Tipo da dívida<input id="c-tipo" maxlength="80" placeholder="Custeio, CPR…" /></label>
+              <label>Faixa<input id="c-faixa" maxlength="80" placeholder="R$ 200 mil a 1 milhão" /></label>
+              <label>Situação<input id="c-situacao" maxlength="80" placeholder="Atrasado / cobrança" /></label>
+              <label>Porte<input id="c-porte" maxlength="40" placeholder="Pronaf / Pronamp" /></label>
+              <label>Cultura<input id="c-cultura" maxlength="80" placeholder="Soja, gado…" /></label>
+              <label>Área (ha)<input id="c-area" maxlength="40" placeholder="120" /></label>
+              <label>Local<input id="c-local" maxlength="80" placeholder="TO — município" /></label>
+            </div>
+            <button type="button" class="btn btn--sm" id="btn-contract-generate">Gerar PDF</button>
+            <p class="err" id="contract-error" hidden></p>
+          </div>
+
+          <div class="docs">
+            <p class="eyebrow">Contratos gerados</p>
+            <div class="docs__list" id="contracts-list"></div>
+          </div>
+          <div class="docs">
+            <p class="eyebrow">Documentos</p>
+            <div class="docs__list" id="docs-list"></div>
+          </div>
+
+          <div class="ai-box">
+            <p class="eyebrow">Assistente de resposta</p>
+            <label class="ai-label">Dúvida ou mensagem do lead (opcional)
+              <textarea id="ai-prompt" maxlength="2000" placeholder="Cole o que o lead perguntou…"></textarea>
+            </label>
+            <div class="actions">
+              <button type="button" class="btn btn--sm" id="btn-ai">Sugerir resposta</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="btn-ai-note" hidden>Salvar como anotação</button>
+            </div>
+            <p class="err" id="ai-error" hidden></p>
+            <p class="ai-aviso" id="ai-aviso" hidden></p>
+            <textarea id="ai-reply" hidden readonly></textarea>
+          </div>
+
+          <div class="notes">
+            <p class="eyebrow">Anotações</p>
+            <textarea id="note-text" placeholder="Escreva uma anotação…" maxlength="2000"></textarea>
+            <button type="button" class="btn btn--sm" id="btn-note">Salvar anotação</button>
+            <div class="notes__list" id="notes-list"></div>
+          </div>
+        </div>
+      </div>
+    </aside>
   </main>
 
-  <script src="./admin.js?v=20261109c" defer></script>
+  <script src="./admin.js?v=20261109d" defer></script>
 </body>
 </html>

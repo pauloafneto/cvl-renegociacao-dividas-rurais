@@ -58,6 +58,12 @@
     stTaxa: document.getElementById("st-taxa"),
     stMedia: document.getElementById("st-media"),
     stStages: document.getElementById("st-stages"),
+    dFaixa: document.getElementById("d-faixa"),
+    dTipo: document.getElementById("d-tipo"),
+    dSituacao: document.getElementById("d-situacao"),
+    dLocal: document.getElementById("d-local"),
+    dCultura: document.getElementById("d-cultura"),
+    dPorte: document.getElementById("d-porte"),
     aiPrompt: document.getElementById("ai-prompt"),
     aiReply: document.getElementById("ai-reply"),
     aiError: document.getElementById("ai-error"),
@@ -103,14 +109,44 @@
   }
 
   function retornoLabel(lead) {
-    if (lead.status === "fechado" || lead.status === "perdido") return "—";
+    if (lead.status === "fechado" || lead.status === "perdido") return "Encerrado";
     if (lead.atrasado) {
       const d = lead.dias_sem_retorno;
       return `<span class="badge badge--atrasado">Sem retorno há ${d} dia${d === 1 ? "" : "s"}</span>`;
     }
-    if (lead.dias_sem_retorno === 0) return "Hoje";
-    if (lead.dias_sem_retorno === 1) return "1 dia";
-    return `${lead.dias_sem_retorno} dias`;
+    if (lead.dias_sem_retorno === 0) return "Retorno: hoje";
+    if (lead.dias_sem_retorno === 1) return "Retorno: 1 dia";
+    return `Retorno: ${lead.dias_sem_retorno} dias`;
+  }
+
+  function shortText(value, max = 42) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  }
+
+  function cardTags(lead) {
+    const tags = [];
+    if (lead.faixa_divida) {
+      tags.push(`<span class="kanban-card__tag kanban-card__tag--money">${escapeHtml(shortText(lead.faixa_divida, 36))}</span>`);
+    }
+    if (lead.tipo_divida) {
+      tags.push(`<span class="kanban-card__tag">${escapeHtml(shortText(lead.tipo_divida, 28))}</span>`);
+    }
+    if (lead.situacao_divida) {
+      tags.push(`<span class="kanban-card__tag">${escapeHtml(shortText(lead.situacao_divida, 28))}</span>`);
+    }
+    return tags.length ? `<div class="kanban-card__row">${tags.join("")}</div>` : "";
+  }
+
+  function cardSecondary(lead) {
+    const bits = [];
+    if (lead.local_producao) bits.push(shortText(lead.local_producao, 28));
+    if (lead.cultura) bits.push(shortText(lead.cultura, 22));
+    if (lead.porte) bits.push(shortText(lead.porte, 18));
+    return bits.length
+      ? `<span class="kanban-card__meta">${escapeHtml(bits.join(" · "))}</span>`
+      : "";
   }
 
   async function ensureAuth() {
@@ -133,15 +169,19 @@
       data.tempo_medio_ate_fechar_dias == null
         ? "—"
         : `${data.tempo_medio_ate_fechar_dias} d`;
-    els.stStages.innerHTML = "";
-    const stages = data.tempo_medio_por_estagio_dias || {};
-    for (const [status, days] of Object.entries(stages)) {
-      const pill = document.createElement("span");
-      pill.className = "stats__pill";
-      pill.innerHTML = `${escapeHtml(STATUS_LABEL[status] || status)} <span>${
-        days == null ? "—" : `${days} d`
-      }</span>`;
-      els.stStages.appendChild(pill);
+    if (els.stStages) {
+      els.stStages.innerHTML = "";
+      const stages = data.tempo_medio_por_estagio_dias || {};
+      const entries = Object.entries(stages);
+      els.stStages.hidden = entries.length === 0;
+      for (const [status, days] of entries) {
+        const pill = document.createElement("span");
+        pill.className = "stats__pill";
+        pill.innerHTML = `${escapeHtml(STATUS_LABEL[status] || status)} <span>${
+          days == null ? "—" : `${days} d`
+        }</span>`;
+        els.stStages.appendChild(pill);
+      }
     }
   }
 
@@ -226,8 +266,10 @@
         card.dataset.id = String(lead.id);
         card.dataset.status = lead.status;
         card.innerHTML = `
-          <strong>${escapeHtml(lead.nome)}</strong>
-          <span class="kanban-card__meta">${escapeHtml(lead.telefone || "—")}</span>
+          <p class="kanban-card__name">${escapeHtml(lead.nome || "Sem nome")}</p>
+          <span class="kanban-card__phone">${escapeHtml(lead.telefone || "Sem WhatsApp")}</span>
+          ${cardTags(lead)}
+          ${cardSecondary(lead)}
           <span class="kanban-card__meta">${retornoLabel(lead)}</span>
         `;
         card.addEventListener("dragstart", (e) => {
@@ -327,6 +369,12 @@
     els.nome.textContent = data.lead.nome;
     els.fone.textContent = data.lead.telefone || "—";
     els.email.textContent = data.lead.email || "—";
+    if (els.dFaixa) els.dFaixa.textContent = data.lead.faixa_divida || "—";
+    if (els.dTipo) els.dTipo.textContent = data.lead.tipo_divida || "—";
+    if (els.dSituacao) els.dSituacao.textContent = data.lead.situacao_divida || "—";
+    if (els.dLocal) els.dLocal.textContent = data.lead.local_producao || "—";
+    if (els.dCultura) els.dCultura.textContent = data.lead.cultura || "—";
+    if (els.dPorte) els.dPorte.textContent = data.lead.porte || "—";
     els.status.textContent = STATUS_LABEL[data.lead.status] || data.lead.status;
     els.status.className = badgeClass(data.lead.status);
     els.entrada.textContent = formatDate(data.lead.data_entrada);
