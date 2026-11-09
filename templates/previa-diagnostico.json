@@ -1,0 +1,28 @@
+{
+  "id": "previa-diagnostico",
+  "versao": "1.0",
+  "titulo": "Prévia do seu caso",
+  "subtitulo": "Leitura rápida com base no que você acabou de informar — sem abrir o diagnóstico completo.",
+  "aviso": "Isto não substitui a consulta. Não há promessa de desconto, aprovação bancária ou resultado.",
+  "abertura": "Pelo que você marcou — {{tipo_label}}, na faixa {{faixa_label}}, situação “{{situacao_label}}” — o caminho costuma começar por organizar o mapa da dívida (contratos, garantias e prazos) antes de qualquer conversa com banco.",
+  "por_tipo": {
+    "custeio": "Em custeio, o foco costuma ser encaixar a cobrança no ciclo da safra e ver se há espaço de alongamento ou recomposição sem quebrar o caixa da lavoura.",
+    "investimento": "Em investimento, olhamos a garantia vinculada (máquina, terra, alienação) e se a pressão de parcela está desalinhada da capacidade atual de pagamento.",
+    "cpr": "Em CPR, a leitura é mais delicada: vencimento, entrega, liquidação e risco de execução pedem triagem documental antes de qualquer proposta ao credor.",
+    "comercializacao": "Em comercialização, o ponto costuma ser o fluxo de recebíveis e se a dívida está “presa” a um momento ruim de preço ou de venda.",
+    "misto": "Com mais de um tipo de dívida, a prioridade é separar o que é urgente do que ainda cabe negociar — misturar tudo no mesmo papo com o banco quase sempre piora o resultado."
+  },
+  "por_situacao": {
+    "atrasado": "Como já há atraso, a prévia indica urgência em mapear notificações, protestos e garantias — quanto mais cedo isso fica claro, mais opções reais aparecem.",
+    "em-dia-apertado": "Como ainda está em dia, porém apertado, a janela costuma ser melhor: dá para montar um plano antes da inadimplência virar cobrança formal.",
+    "cobranca": "Com cobrança ou ameaça de execução, a prévia aponta para blindar prazos e documentos agora; o detalhamento completo fica para a consulta."
+  },
+  "por_faixa": {
+    "ate-200k": "Na sua faixa, o ganho da consulta costuma ser clareza rápida: o que negociar primeiro e o que não vale gastar energia.",
+    "200k-1m": "Na faixa de centenas de milhares, o mapa de garantias e o timing da negociação pesam mais do que “pedir desconto” solto.",
+    "1m-4m": "Em valores altos, a prévia só risca o caminho: prioridade, risco de garantia e o que precisa estar na mesa antes de qualquer proposta.",
+    "acima-4m": "Acima de R$ 4 milhões, a consultoria completa é quase obrigatória para não negociar no escuro — a prévia só mostra que o caso pede método, não improviso."
+  },
+  "ponte": "Na consulta de {{consulta_valor_formatado}}, aprofundamos documentos e montamos o próximo passo com você. Se houver contrato de honorários depois, esse valor é abatido.",
+  "cta": "Continuar a triagem"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "cvl-renegociacao-crm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server/index.js",
+    "start": "node server/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "multer": "^2.5.0",
+    "pdfkit": "^0.17.2",
+    "sql.js": "^1.13.0"
+  }
+}

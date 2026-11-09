@@ -1,0 +1,70 @@
+{
+  "id": "contrato-consulta",
+  "versao": "1.0",
+  "titulo": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE CONSULTORIA JURÍDICA — RENEGOCIAÇÃO DE DÍVIDAS RURAIS",
+  "introducao": "Pelo presente instrumento particular, de um lado {{escritorio_razao_social}}, inscrito no CNPJ sob nº {{escritorio_cnpj}}, com sede em {{escritorio_endereco_palmas}}, doravante denominado CONTRATADO; e de outro lado {{cliente_nome}}, inscrito no CPF sob nº {{cliente_cpf}}, residente e domiciliado em {{cliente_endereco}}, telefone/WhatsApp {{cliente_telefone}}, e-mail {{cliente_email}}, doravante denominado CONTRATANTE, têm entre si justo e contratado o seguinte:",
+  "clausulas": [
+    {
+      "numero": "1",
+      "titulo": "DO OBJETO",
+      "texto": "O presente contrato tem por objeto a prestação de serviços de consultoria jurídica voltada à análise, organização e orientação para eventual renegociação, reestruturação ou defesa relacionada a dívidas rurais do CONTRATANTE, incluindo, conforme o caso: operações de custeio, investimento, CPR, comercialização e demais créditos rurais, sem garantia de resultado específico perante instituições financeiras ou órgãos públicos."
+    },
+    {
+      "numero": "2",
+      "titulo": "DO ESCOPO DOS SERVIÇOS",
+      "texto": "Integram o escopo, de forma exemplificativa: (i) triagem e mapeamento das dívidas informadas; (ii) análise documental preliminar dos contratos, extratos, garantias e correspondências apresentadas; (iii) orientação sobre riscos, prazos e caminhos possíveis; (iv) elaboração de estratégia inicial de atendimento; e (v) recomendações sobre próximos passos. Não estão incluídos, salvo contratação adicional por escrito: ajuizamento de ações, recursos, acompanhamento de execuções, perícias, deslocamentos ou negociação presencial reiterada."
+    },
+    {
+      "numero": "3",
+      "titulo": "DOS DADOS DO CASO INFORMADOS PELO CONTRATANTE",
+      "texto": "Para fins deste instrumento, o CONTRATANTE declara, sob sua responsabilidade, as seguintes informações preliminares: tipo principal da dívida: {{tipo_divida}}; faixa aproximada: {{faixa_divida}}; situação: {{situacao_divida}}; enquadramento: {{porte}}; cultura/atividade: {{cultura}}; área aproximada: {{area_ha}} ha; local da produção: {{local_producao}}. Tais dados servem apenas para contextualizar a consultoria e podem ser revisados após análise documental."
+    },
+    {
+      "numero": "4",
+      "titulo": "DAS OBRIGAÇÕES DO CONTRATADO",
+      "texto": "O CONTRATADO obriga-se a: prestar os serviços com diligência e ética profissional; guardar sigilo sobre informações do CONTRATANTE; informar limitações técnicas e jurídicas relevantes; e conduzir o atendimento de forma clara, sem juridiquês desnecessário, sempre que possível. O CONTRATADO não se obriga a obter desconto, alongamento, anistia, aprovação bancária ou qualquer resultado concreto — o objeto é consultivo e estratégico."
+    },
+    {
+      "numero": "5",
+      "titulo": "DAS OBRIGAÇÕES DO CONTRATANTE",
+      "texto": "O CONTRATANTE obriga-se a: fornecer informações e documentos verdadeiros, completos e atualizados; indicar interlocutores autorizados; cumprir prazos acordados para envio de materiais; e abster-se de omitir fatos relevantes (garantias, protestos, execuções, penhoras, CPR emitidas, renegociações anteriores)."
+    },
+    {
+      "numero": "6",
+      "titulo": "DA REMUNERAÇÃO E DO ABATIMENTO",
+      "texto": "Pela consulta/consultoria inicial objeto deste contrato, o CONTRATANTE pagará o valor de {{consulta_valor_formatado}} ({{consulta_valor_extenso}}), na forma combinada entre as partes. Caso o CONTRATANTE venha a celebrar, com o CONTRATADO, contrato posterior de honorários para condução mais ampla do caso (negociação assistida, contencioso ou mandato específico), o valor desta consulta será ABATIDO do preço daquele novo contrato, não permanecendo como cobrança cumulativa, salvo disposição escrita em contrário. Despesas extraordinárias (custas, deslocamentos, perícias, cópias autenticadas etc.) não estão inclusas e dependerão de autorização prévia."
+    },
+    {
+      "numero": "7",
+      "titulo": "DO PRAZO",
+      "texto": "A consultoria inicial terá prazo estimado de {{prazo_dias}} dias úteis contados do recebimento da documentação mínima necessária, podendo ser prorrogado por acordo entre as partes diante da complexidade do caso ou demora no envio de documentos."
+    },
+    {
+      "numero": "8",
+      "titulo": "DA AUSÊNCIA DE GARANTIA DE RESULTADO",
+      "texto": "As partes reconhecem que a advocacia e a consultoria jurídica não admitem promessa de êxito. Nenhuma cláusula deste contrato constitui garantia de desconto, quitação, suspensão de cobrança, manutenção de crédito rural, liberação de garantias ou qualquer benefício econômico perante terceiros."
+    },
+    {
+      "numero": "9",
+      "titulo": "DO SIGILO E DA PROTEÇÃO DE DADOS (LGPD)",
+      "texto": "O CONTRATADO tratará dados pessoais e documentos do CONTRATANTE para execução deste contrato e cumprimento de obrigações legais, nos termos da Lei nº 13.709/2018 (LGPD). O CONTRATANTE autoriza o uso dos dados informados (incluindo telefone/WhatsApp e documentos enviados) para contato, análise do caso e registro interno. Os dados não serão comercializados."
+    },
+    {
+      "numero": "10",
+      "titulo": "DA RESCISÃO",
+      "texto": "Qualquer das partes poderá rescindir este contrato mediante comunicação escrita, com efeitos a partir do recebimento. Serviços já prestados até a rescisão poderão ser cobrados proporcionalmente. O abatimento previsto na cláusula 6 somente se aplica se houver efetivo fechamento de contrato posterior de honorários com o CONTRATADO."
+    },
+    {
+      "numero": "11",
+      "titulo": "DAS DISPOSIÇÕES GERAIS",
+      "texto": "Este instrumento prevalece sobre entendimentos verbais anteriores relativos ao mesmo objeto. Alterações somente terão validade se feitas por escrito. A eventual nulidade de uma cláusula não prejudica as demais. Comunicações poderão ser feitas por e-mail ou WhatsApp dos contatos indicados neste contrato."
+    },
+    {
+      "numero": "12",
+      "titulo": "DO FORO",
+      "texto": "Fica eleito o foro da {{foro}}, com renúncia a qualquer outro, por mais privilegiado que seja, para dirimir controvérsias oriundas deste contrato."
+    }
+  ],
+  "fechamento": "E por estarem assim justos e contratados, firmam o presente em 2 (duas) vias de igual teor, na presença das testemunhas abaixo, se houver.",
+  "local_data": "{{cidade_assinatura}}, {{data_contrato}}."
+}

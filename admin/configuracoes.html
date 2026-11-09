@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Configurações · Painel CVL</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./admin.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top__row">
+      <a class="brand" href="./index.html">CVL · <span>Leads</span></a>
+      <a class="top__meta" href="./configuracoes.html" style="text-decoration:none;color:var(--gold)">Configurações</a>
+      <span class="top__meta" id="user-label">…</span>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-logout">Sair</button>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="wrap" style="max-width:640px">
+      <div class="page__head">
+        <p class="eyebrow">Painel admin</p>
+        <div class="accent-bar" aria-hidden="true"></div>
+        <h1>Configurações</h1>
+      </div>
+
+      <section class="card" style="margin-bottom:1rem">
+        <div class="card__head">Valor da consulta</div>
+        <div class="detail">
+          <p style="margin:0;color:var(--muted);font-weight:600">
+            Valor cobrado na consulta inicial. Se o cliente fechar contrato, este valor é abatido — não fica como cobrança extra.
+          </p>
+          <form id="settings-form" class="notes" style="gap:.85rem">
+            <label style="display:grid;gap:.35rem;font-size:.8rem;font-weight:800;color:var(--navy)">
+              Valor em reais
+              <input
+                type="number"
+                id="consulta-valor"
+                name="consulta_valor"
+                min="0"
+                max="1000000"
+                step="0.01"
+                required
+                style="min-height:46px;border:1.5px solid var(--line);border-radius:.9rem;padding:.55rem .8rem;font:inherit;font-weight:700"
+              />
+            </label>
+            <p style="margin:0;font-weight:800;color:var(--navy)">
+              Exibição no site: <span id="preview">—</span>
+            </p>
+            <p class="err" id="settings-error" hidden></p>
+            <p id="settings-ok" hidden style="margin:0;color:#157a3f;font-weight:800"></p>
+            <div class="actions">
+              <button type="submit" class="btn">Salvar valor</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__head">Assistente de IA</div>
+        <div class="detail">
+          <p style="margin:0;color:var(--muted);font-weight:600">
+            A chave fica <strong>vazia</strong> de propósito. Cole só quando tiver. Sem chave, o painel usa rascunho local. Detalhes em <code>HANDOFF.md</code>.
+          </p>
+          <p id="ai-status" style="margin:0;font-weight:800;color:var(--navy)">Status: …</p>
+          <form id="ai-form" class="notes" style="gap:.85rem">
+            <label style="display:grid;gap:.35rem;font-size:.8rem;font-weight:800;color:var(--navy)">
+              Chave da API (cole aqui — campo sempre começa vazio)
+              <input
+                type="password"
+                id="ai-api-key"
+                name="api_key"
+                value=""
+                autocomplete="off"
+                placeholder="Cole a chave depois — deixe vazio por enquanto"
+                style="min-height:46px;border:1.5px solid var(--line);border-radius:.9rem;padding:.55rem .8rem;font:inherit;font-weight:700"
+              />
+            </label>
+            <label style="display:grid;gap:.35rem;font-size:.8rem;font-weight:800;color:var(--navy)">
+              Provedor
+              <select id="ai-provider" style="min-height:46px;border:1.5px solid var(--line);border-radius:.9rem;padding:.55rem .8rem;font:inherit;font-weight:700">
+                <option value="openai">openai (compatível)</option>
+                <option value="openai-compatible">openai-compatible</option>
+              </select>
+            </label>
+            <label style="display:grid;gap:.35rem;font-size:.8rem;font-weight:800;color:var(--navy)">
+              Modelo
+              <input id="ai-model" placeholder="gpt-4o-mini" style="min-height:46px;border:1.5px solid var(--line);border-radius:.9rem;padding:.55rem .8rem;font:inherit;font-weight:700" />
+            </label>
+            <label style="display:grid;gap:.35rem;font-size:.8rem;font-weight:800;color:var(--navy)">
+              URL base da API
+              <input id="ai-base-url" placeholder="https://api.openai.com/v1" style="min-height:46px;border:1.5px solid var(--line);border-radius:.9rem;padding:.55rem .8rem;font:inherit;font-weight:700" />
+            </label>
+            <label class="check" style="display:flex;gap:.5rem;align-items:center;font-weight:700">
+              <input type="checkbox" id="ai-clear-key" />
+              <span>Apagar chave salva</span>
+            </label>
+            <p class="err" id="ai-error" hidden></p>
+            <p id="ai-ok" hidden style="margin:0;color:#157a3f;font-weight:800"></p>
+            <div class="actions">
+              <button type="submit" class="btn">Salvar IA</button>
+              <a class="btn btn--ghost" href="./index.html">Voltar aos leads</a>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    function formatBrl(n) {
+      return Number(n).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    async function api(url, options = {}) {
+      const res = await fetch(url, {
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        ...options,
+      });
+      if (res.status === 401) {
+        location.href = "./login.html";
+        throw new Error("Não autenticado");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Erro");
+      return data;
+    }
+
+    const input = document.getElementById("consulta-valor");
+    const preview = document.getElementById("preview");
+    const err = document.getElementById("settings-error");
+    const ok = document.getElementById("settings-ok");
+    const aiKey = document.getElementById("ai-api-key");
+    const aiStatus = document.getElementById("ai-status");
+
+    input.addEventListener("input", () => {
+      const n = Number(input.value);
+      preview.textContent = Number.isFinite(n) ? formatBrl(n) : "—";
+    });
+
+    document.getElementById("btn-logout").addEventListener("click", async () => {
+      await api("/api/logout", { method: "POST", body: "{}" });
+      location.href = "./login.html";
+    });
+
+    document.getElementById("settings-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      err.hidden = true;
+      ok.hidden = true;
+      try {
+        const data = await api("/api/settings/consulta-valor", {
+          method: "PUT",
+          body: JSON.stringify({ consulta_valor: input.value }),
+        });
+        input.value = data.consulta_valor;
+        preview.textContent = data.consulta_valor_formatado;
+        ok.hidden = false;
+        ok.textContent = "Valor salvo. O site já usa o novo valor.";
+      } catch (ex) {
+        err.hidden = false;
+        err.textContent = ex.message;
+      }
+    });
+
+    document.getElementById("ai-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const aiErr = document.getElementById("ai-error");
+      const aiOk = document.getElementById("ai-ok");
+      aiErr.hidden = true;
+      aiOk.hidden = true;
+      try {
+        const data = await api("/api/settings/ai", {
+          method: "PUT",
+          body: JSON.stringify({
+            api_key: aiKey.value,
+            provider: document.getElementById("ai-provider").value,
+            model: document.getElementById("ai-model").value.trim(),
+            base_url: document.getElementById("ai-base-url").value.trim(),
+            clear_key: document.getElementById("ai-clear-key").checked,
+          }),
+        });
+        // Campo permanece vazio de propósito (não ecoa segredo)
+        aiKey.value = "";
+        document.getElementById("ai-clear-key").checked = false;
+        aiStatus.textContent = data.api_key_salva
+          ? `Status: chave salva · provedor ${data.provider} · modelo ${data.model}`
+          : "Status: sem chave (rascunho local)";
+        aiOk.hidden = false;
+        aiOk.textContent = "Configuração de IA salva.";
+      } catch (ex) {
+        aiErr.hidden = false;
+        aiErr.textContent = ex.message;
+      }
+    });
+
+    (async () => {
+      const me = await fetch("/api/me", { credentials: "same-origin" }).then((r) => r.json());
+      if (!me.authenticated) {
+        location.href = "./login.html";
+        return;
+      }
+      document.getElementById("user-label").textContent = me.user.username;
+      const data = await api("/api/settings");
+      input.value = data.consulta_valor;
+      preview.textContent = data.consulta_valor_formatado;
+
+      const ai = await api("/api/settings/ai");
+      aiKey.value = ""; // sempre vazio
+      document.getElementById("ai-provider").value = ai.provider || "openai";
+      document.getElementById("ai-model").value = ai.model || "";
+      document.getElementById("ai-base-url").value = ai.baseUrl || "";
+      aiStatus.textContent = ai.api_key_salva
+        ? `Status: chave salva · provedor ${ai.provider} · modelo ${ai.model}`
+        : "Status: sem chave (rascunho local)";
+    })().catch(() => {
+      location.href = "./login.html";
+    });
+  </script>
+</body>
+</html>

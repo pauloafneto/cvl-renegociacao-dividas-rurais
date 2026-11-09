@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Enviar documentos | Cavalcante e Valduga</title>
+  <meta name="robots" content="noindex,follow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    .upload-page { padding: 2rem 0 4rem; }
+    .upload-card {
+      max-width: 560px;
+      margin: 0 auto;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 1.25rem;
+      padding: 1.4rem 1.35rem 1.5rem;
+      box-shadow: var(--shadow-lift);
+    }
+    .upload-card h1 {
+      margin: .75rem 0 0;
+      font-size: clamp(1.4rem, 3vw, 1.85rem);
+      color: var(--navy);
+    }
+    .upload-card .lead-text {
+      margin: .7rem 0 0;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .upload-form { margin-top: 1.2rem; display: grid; gap: .85rem; }
+    .upload-form label {
+      display: grid; gap: .3rem;
+      font-size: .82rem; font-weight: 800; color: var(--navy);
+    }
+    .upload-form input[type="text"],
+    .upload-form input[type="tel"],
+    .upload-form input[type="email"] {
+      min-height: 46px;
+      border: 1.5px solid var(--line);
+      border-radius: .9rem;
+      padding: .55rem .75rem;
+      font: inherit; font-weight: 600;
+    }
+    .upload-form input:focus {
+      outline: none;
+      border-color: var(--gold-2);
+      box-shadow: 0 0 0 3px rgba(232,188,103,.22);
+    }
+    .file-box {
+      border: 1.5px dashed rgba(179,139,60,.55);
+      background: rgba(232,188,103,.08);
+      border-radius: 1rem;
+      padding: 1rem;
+      display: grid; gap: .45rem;
+    }
+    .file-box input[type="file"] { font-size: .88rem; font-weight: 600; }
+    .file-hint { margin: 0; color: var(--muted); font-size: .8rem; font-weight: 600; }
+    .file-list { margin: 0; padding-left: 1.1rem; font-size: .85rem; font-weight: 700; color: var(--ink); }
+    .upload-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: .3rem; }
+    .ok-box {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: .9rem;
+      background: #e7f7ee;
+      color: #157a3f;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top__row">
+      <a class="logo" href="./" title="Página atual">
+        <img src="./brand/cvl-logo-white.png" alt="Cavalcante e Valduga" width="200" height="36" />
+      </a>
+      <a class="btn btn--gold btn--sm" href="./">Voltar à triagem</a>
+    </div>
+  </header>
+
+  <main class="upload-page">
+    <div class="wrap">
+      <div class="upload-card">
+        <p class="eyebrow">Interesse real</p>
+        <div class="accent-bar" aria-hidden="true"></div>
+        <h1>Enviar meus documentos</h1>
+        <p class="lead-text">
+          Contratos rurais, extratos, escrituras ou outros papéis que ajudem no diagnóstico.
+          Só use este envio se já quiser que o escritório analise o caso.
+        </p>
+        <p class="lead-text">
+          Consulta inicial:
+          <strong data-consulta-valor>R$&nbsp;497</strong>.
+          Se fechar contrato, esse valor é <strong>abatido</strong> — não fica como cobrança extra.
+        </p>
+
+        <form class="upload-form" id="upload-form">
+          <label>Nome
+            <input type="text" name="nome" required maxlength="80" autocomplete="name" />
+          </label>
+          <label>WhatsApp com DDD
+            <input type="tel" name="telefone" required maxlength="20" inputmode="tel" placeholder="(63) 9xxxx-xxxx" autocomplete="tel" />
+          </label>
+          <label>E-mail (opcional)
+            <input type="email" name="email" maxlength="120" autocomplete="email" />
+          </label>
+
+          <div class="file-box">
+            <label>Documentos
+              <input type="file" name="documentos" id="files" multiple required
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,application/pdf,image/*" />
+            </label>
+            <p class="file-hint">PDF, imagem ou Word · até 10 MB por arquivo · até 8 arquivos</p>
+            <ul class="file-list" id="file-list" hidden></ul>
+          </div>
+
+          <p class="err" id="upload-error" hidden></p>
+          <div class="upload-actions">
+            <button type="submit" class="btn btn--gold" id="btn-send">Enviar documentos</button>
+            <a class="btn btn--ghost-light" style="border-color:var(--line);color:var(--ink);background:transparent" href="./">Cancelar</a>
+          </div>
+        </form>
+
+        <div class="ok-box" id="upload-ok" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (async () => {
+      try {
+        const res = await fetch("/api/public/settings");
+        if (!res.ok) return;
+        const data = await res.json();
+        document.querySelectorAll("[data-consulta-valor]").forEach((el) => {
+          el.textContent = data.consulta_valor_formatado;
+        });
+      } catch (_) {}
+    })();
+
+    const form = document.getElementById("upload-form");
+    const filesInput = document.getElementById("files");
+    const fileList = document.getElementById("file-list");
+    const err = document.getElementById("upload-error");
+    const ok = document.getElementById("upload-ok");
+    const btn = document.getElementById("btn-send");
+
+    filesInput.addEventListener("change", () => {
+      const files = [...filesInput.files];
+      if (!files.length) {
+        fileList.hidden = true;
+        fileList.innerHTML = "";
+        return;
+      }
+      fileList.hidden = false;
+      fileList.innerHTML = files
+        .map((f) => `<li>${f.name} (${(f.size / 1024 / 1024).toFixed(2)} MB)</li>`)
+        .join("");
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      err.hidden = true;
+      ok.hidden = true;
+      btn.disabled = true;
+      btn.textContent = "Enviando…";
+
+      const data = new FormData(form);
+      try {
+        const res = await fetch("/api/public/documents", {
+          method: "POST",
+          body: data,
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || "Falha no envio.");
+        form.hidden = true;
+        ok.hidden = false;
+        ok.innerHTML = `Documentos recebidos (${json.documents.length}). O escritório vai analisar e falar no WhatsApp informado.`;
+      } catch (ex) {
+        err.hidden = false;
+        err.textContent = ex.message;
+        btn.disabled = false;
+        btn.textContent = "Enviar documentos";
+      }
+    });
+  </script>
+</body>
+</html>

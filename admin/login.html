@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login · Painel CVL</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./admin.css" />
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <p class="eyebrow">Cavalcante e Valduga</p>
+    <div class="accent-bar" aria-hidden="true"></div>
+    <h1>Painel de leads</h1>
+    <p>Entre com usuário e senha para ver a fila de renegociação.</p>
+    <form class="login-form" id="login-form">
+      <div class="field">
+        <label for="username">Usuário</label>
+        <input id="username" name="username" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label for="password">Senha</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+      </div>
+      <p class="err" id="login-error" hidden></p>
+      <button class="btn" type="submit">Entrar</button>
+    </form>
+    <p class="login-hint">Usuário inicial de desenvolvimento — trocar depois (ver README).</p>
+  </div>
+  <script>
+    (async () => {
+      const me = await fetch("/api/me", { credentials: "same-origin" }).then((r) => r.json());
+      if (me.authenticated) location.href = "./index.html";
+    })();
+
+    const form = document.getElementById("login-form");
+    const err = document.getElementById("login-error");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      err.hidden = true;
+      const body = {
+        username: form.username.value.trim(),
+        password: form.password.value,
+      };
+      const res = await fetch("/api/login", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        err.textContent = data.error || "Falha no login.";
+        err.hidden = false;
+        return;
+      }
+      location.href = "./index.html";
+    });
+  </script>
+</body>
+</html>
