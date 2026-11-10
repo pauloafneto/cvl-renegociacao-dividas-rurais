@@ -47,6 +47,15 @@ Porta: variável `PORT` (padrão `8787`). Em produção a Hostinger define `PORT
 
 ---
 
+## Produção (no ar)
+
+- Site / landing: https://cvl-crm.imprimemais.com.br/
+- Painel CRM: https://cvl-crm.imprimemais.com.br/admin/
+- Saúde: https://cvl-crm.imprimemais.com.br/api/health
+- Conta Hostinger: `u818899628` (site Node **separado** do `app.imprimemais.com.br`)
+
+Login inicial: `admin` / `admin123` (trocar depois).
+
 ## Publicar na Hostinger Nuvem Startups (caminho principal)
 
 Plano certo na conta do Paulo: **Hospedagem em Nuvem para Startups** (já tem Node — é onde roda `app.imprimemais.com.br`).
@@ -55,15 +64,16 @@ Plano certo na conta do Paulo: **Hospedagem em Nuvem para Startups** (já tem No
 **Não use** o plano **Negócios** (só PHP/HTML).  
 **Não use** GitHub Pages para o CRM (Pages é estático; o painel precisa do servidor Node).
 
-### 1) Criar um site Node novo (subdomínio)
+### 1) Site Node (já criado)
+
+Domínio em produção: **`cvl-crm.imprimemais.com.br`** (site Node próprio, ordem `1009839132`).
+
+Se precisar recriar do zero:
 
 1. No hPanel abra **Sites**.
 2. No bloco **Hospedagem em Nuvem para Startups**, clique **+ Criar site**.
 3. Escolha criar um **aplicativo web / Node.js** (não PHP).
-4. Domínio: use um **subdomínio novo**, por exemplo:
-   - `cvl-crm.imprimemais.com.br`, ou
-   - `cvl.cavalcanteevalduga.com.br`  
-   (o que o Paulo preferir e tiver DNS liberado).
+4. Domínio: `cvl-crm.imprimemais.com.br` (ou outro liberado).
 5. Confirme a criação e espere o site aparecer na lista — **separado** do `app.imprimemais.com.br`.
 
 ### 2) Enviar o código deste projeto
