@@ -13,6 +13,22 @@ const dataDir = process.env.CVL_DATA_DIR
 const dbPath = path.join(dataDir, "cvl.sqlite");
 
 export const STATUSES = ["novo", "triagem", "atendimento", "proposta", "fechado", "perdido"];
+export const PRIORITIES = ["alta", "media", "baixa"];
+
+export const STATUS_LABELS = {
+  novo: "Novo",
+  triagem: "Triagem",
+  atendimento: "Atendimento",
+  proposta: "Proposta",
+  fechado: "Fechado",
+  perdido: "Perdido",
+};
+
+export const PRIORITY_LABELS = {
+  alta: "Alta",
+  media: "Média",
+  baixa: "Baixa",
+};
 
 function rowsFrom(stmt) {
   const cols = stmt.getColumnNames();
@@ -135,6 +151,32 @@ export async function ensureDb() {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE SET NULL
     );
+
+    CREATE TABLE IF NOT EXISTS tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      color TEXT NOT NULL DEFAULT '#b38b3c',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS lead_tags (
+      lead_id INTEGER NOT NULL,
+      tag_id INTEGER NOT NULL,
+      PRIMARY KEY (lead_id, tag_id),
+      FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS lead_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lead_id INTEGER NOT NULL,
+      titulo TEXT NOT NULL,
+      done INTEGER NOT NULL DEFAULT 0,
+      due_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      completed_at TEXT,
+      FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE
+    );
   `);
 
   // Migração: última interação para follow-up
@@ -159,10 +201,29 @@ export async function ensureDb() {
     "cultura",
     "area_ha",
     "local_producao",
+    "prioridade",
   ];
   for (const col of extraLeadCols) {
     if (!leadCols.includes(col)) {
-      run(db, `ALTER TABLE leads ADD COLUMN ${col} TEXT NOT NULL DEFAULT ''`);
+      const def = col === "prioridade" ? "'media'" : "''";
+      run(db, `ALTER TABLE leads ADD COLUMN ${col} TEXT NOT NULL DEFAULT ${def}`);
+    }
+  }
+
+  // Tags padrão do funil advocacia (dívida rural)
+  const tagCount = oneFrom(db, "SELECT COUNT(*) AS c FROM tags").c;
+  if (tagCount === 0) {
+    const seedTags = [
+      ["Pronaf", "#2f6b3a"],
+      ["Pronamp", "#1f4e79"],
+      ["CPR", "#b38b3c"],
+      ["Custeio", "#8a5a00"],
+      ["Urgente", "#a11b1b"],
+      ["WhatsApp", "#0b6b3a"],
+      ["Google Ads", "#5b4bb7"],
+    ];
+    for (const [name, color] of seedTags) {
+      run(db, "INSERT INTO tags (name, color) VALUES (?, ?)", [name, color]);
     }
   }
 
@@ -253,7 +314,7 @@ export async function ensureDb() {
   persist(db);
 
   const LEAD_FIELDS =
-    "id, nome, telefone, email, status, data_entrada, observacoes, ultima_interacao, cpf, endereco, tipo_divida, faixa_divida, situacao_divida, porte, cultura, area_ha, local_producao";
+    "id, nome, telefone, email, status, data_entrada, observacoes, ultima_interacao, cpf, endereco, tipo_divida, faixa_divida, situacao_divida, porte, cultura, area_ha, local_producao, prioridade";
 
   function parseWhen(value) {
     if (!value) return null;
@@ -363,20 +424,47 @@ export async function ensureDb() {
       run(db, "UPDATE leads SET ultima_interacao = ? WHERE id = ?", [at, id]);
       persist(db);
     },
-    listLeads(status) {
+    listLeads(status, { q = "" } = {}) {
+      let leads;
       if (status && STATUSES.includes(status)) {
-        return allFrom(
+        leads = allFrom(
           db,
           `SELECT ${LEAD_FIELDS}
            FROM leads WHERE status = ? ORDER BY datetime(COALESCE(ultima_interacao, data_entrada)) ASC`,
           [status]
         );
+      } else {
+        leads = allFrom(
+          db,
+          `SELECT ${LEAD_FIELDS}
+           FROM leads ORDER BY datetime(COALESCE(ultima_interacao, data_entrada)) ASC`
+        );
       }
-      return allFrom(
-        db,
-        `SELECT ${LEAD_FIELDS}
-         FROM leads ORDER BY datetime(COALESCE(ultima_interacao, data_entrada)) ASC`
-      );
+      const query = String(q || "").trim().toLowerCase();
+      if (!query) return leads;
+      const digits = query.replace(/\D/g, "");
+      return leads.filter((lead) => {
+        const hay = [
+          lead.nome,
+          lead.email,
+          lead.telefone,
+          lead.tipo_divida,
+          lead.faixa_divida,
+          lead.situacao_divida,
+          lead.local_producao,
+          lead.cultura,
+          lead.porte,
+          lead.observacoes,
+        ]
+          .map((v) => String(v || "").toLowerCase())
+          .join(" ");
+        if (hay.includes(query)) return true;
+        if (digits.length >= 4) {
+          const phone = String(lead.telefone || "").replace(/\D/g, "");
+          if (phone.includes(digits)) return true;
+        }
+        return false;
+      });
     },
     listOverdueLeads(days = 2) {
       // Exclui fechado/perdido; compara em JS para ISO e datetime SQLite
@@ -396,6 +484,140 @@ export async function ensureDb() {
          FROM leads WHERE id = ?`,
         [id]
       );
+    },
+    setLeadPriority(id, prioridade) {
+      if (!PRIORITIES.includes(prioridade)) return this.getLead(id);
+      run(db, "UPDATE leads SET prioridade = ?, ultima_interacao = ? WHERE id = ?", [
+        prioridade,
+        new Date().toISOString(),
+        id,
+      ]);
+      persist(db);
+      return this.getLead(id);
+    },
+    listTags() {
+      return allFrom(
+        db,
+        `SELECT id, name, color, created_at FROM tags ORDER BY name COLLATE NOCASE ASC`
+      );
+    },
+    createTag(name, color = "#b38b3c") {
+      const cleaned = String(name || "").trim();
+      if (cleaned.length < 2) return null;
+      const existing = oneFrom(db, "SELECT id, name, color, created_at FROM tags WHERE lower(name) = lower(?)", [
+        cleaned,
+      ]);
+      if (existing) return existing;
+      run(db, "INSERT INTO tags (name, color) VALUES (?, ?)", [cleaned, color || "#b38b3c"]);
+      const row = oneFrom(db, "SELECT last_insert_rowid() AS id");
+      persist(db);
+      return oneFrom(db, "SELECT id, name, color, created_at FROM tags WHERE id = ?", [row.id]);
+    },
+    listLeadTags(leadId) {
+      return allFrom(
+        db,
+        `SELECT t.id, t.name, t.color
+         FROM tags t
+         INNER JOIN lead_tags lt ON lt.tag_id = t.id
+         WHERE lt.lead_id = ?
+         ORDER BY t.name COLLATE NOCASE ASC`,
+        [leadId]
+      );
+    },
+    setLeadTags(leadId, tagIds) {
+      const ids = [...new Set((tagIds || []).map(Number).filter((n) => Number.isFinite(n) && n > 0))];
+      run(db, "DELETE FROM lead_tags WHERE lead_id = ?", [leadId]);
+      for (const tagId of ids) {
+        const tag = oneFrom(db, "SELECT id FROM tags WHERE id = ?", [tagId]);
+        if (!tag) continue;
+        run(db, "INSERT INTO lead_tags (lead_id, tag_id) VALUES (?, ?)", [leadId, tagId]);
+      }
+      this.touchLead(leadId);
+      return this.listLeadTags(leadId);
+    },
+    tagsByLeadIds(leadIds) {
+      const map = Object.fromEntries((leadIds || []).map((id) => [id, []]));
+      if (!leadIds?.length) return map;
+      const placeholders = leadIds.map(() => "?").join(",");
+      const rows = allFrom(
+        db,
+        `SELECT lt.lead_id, t.id, t.name, t.color
+         FROM lead_tags lt
+         INNER JOIN tags t ON t.id = lt.tag_id
+         WHERE lt.lead_id IN (${placeholders})
+         ORDER BY t.name COLLATE NOCASE ASC`,
+        leadIds
+      );
+      for (const row of rows) {
+        if (!map[row.lead_id]) map[row.lead_id] = [];
+        map[row.lead_id].push({ id: row.id, name: row.name, color: row.color });
+      }
+      return map;
+    },
+    listTasks(leadId) {
+      return allFrom(
+        db,
+        `SELECT id, lead_id, titulo, done, due_at, created_at, completed_at
+         FROM lead_tasks
+         WHERE lead_id = ?
+         ORDER BY done ASC, datetime(COALESCE(due_at, created_at)) ASC, id ASC`,
+        [leadId]
+      );
+    },
+    addTask(leadId, titulo, dueAt = null) {
+      const text = String(titulo || "").trim();
+      if (text.length < 2) return null;
+      run(
+        db,
+        `INSERT INTO lead_tasks (lead_id, titulo, due_at) VALUES (?, ?, ?)`,
+        [leadId, text, dueAt || null]
+      );
+      const row = oneFrom(db, "SELECT last_insert_rowid() AS id");
+      this.touchLead(leadId);
+      return oneFrom(
+        db,
+        `SELECT id, lead_id, titulo, done, due_at, created_at, completed_at
+         FROM lead_tasks WHERE id = ?`,
+        [row.id]
+      );
+    },
+    setTaskDone(taskId, done) {
+      const task = oneFrom(
+        db,
+        `SELECT id, lead_id, titulo, done, due_at, created_at, completed_at
+         FROM lead_tasks WHERE id = ?`,
+        [taskId]
+      );
+      if (!task) return null;
+      const isDone = done ? 1 : 0;
+      const completedAt = isDone ? new Date().toISOString() : null;
+      run(db, "UPDATE lead_tasks SET done = ?, completed_at = ? WHERE id = ?", [
+        isDone,
+        completedAt,
+        taskId,
+      ]);
+      this.touchLead(task.lead_id);
+      return oneFrom(
+        db,
+        `SELECT id, lead_id, titulo, done, due_at, created_at, completed_at
+         FROM lead_tasks WHERE id = ?`,
+        [taskId]
+      );
+    },
+    deleteTask(taskId) {
+      const task = oneFrom(db, "SELECT id, lead_id FROM lead_tasks WHERE id = ?", [taskId]);
+      if (!task) return false;
+      run(db, "DELETE FROM lead_tasks WHERE id = ?", [taskId]);
+      persist(db);
+      return true;
+    },
+    countOpenTasks(leadId) {
+      const row = oneFrom(
+        db,
+        "SELECT COUNT(*) AS c FROM lead_tasks WHERE lead_id = ? AND done = 0",
+        [leadId]
+      );
+      return row?.c || 0;
     },
     listNotes(leadId) {
       return allFrom(
@@ -535,14 +757,18 @@ export async function ensureDb() {
         "cultura",
         "area_ha",
         "local_producao",
+        "prioridade",
       ];
       const sets = [];
       const params = [];
       for (const key of allowed) {
-        if (fields[key] !== undefined) {
-          sets.push(`${key} = ?`);
-          params.push(String(fields[key] ?? ""));
+        if (fields[key] === undefined) continue;
+        let value = String(fields[key] ?? "");
+        if (key === "prioridade") {
+          if (!PRIORITIES.includes(value)) value = "media";
         }
+        sets.push(`${key} = ?`);
+        params.push(value);
       }
       if (!sets.length) return this.getLead(id);
       sets.push("ultima_interacao = ?");

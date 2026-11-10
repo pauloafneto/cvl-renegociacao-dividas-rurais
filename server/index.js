@@ -4,9 +4,16 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import session from "express-session";
 import bcrypt from "bcryptjs";
-import { ensureDb, STATUSES, rootDir } from "./db.js";
+import {
+  ensureDb,
+  STATUSES,
+  PRIORITIES,
+  STATUS_LABELS,
+  PRIORITY_LABELS,
+  rootDir,
+} from "./db.js";
 import { uploadMiddleware, UPLOAD_DIR, MAX_FILE_BYTES, formatBytes } from "./uploads.js";
-import { enrichLead, startFollowupJob, FOLLOWUP_DAYS } from "./followup.js";
+import { enrichLead, startFollowupJob, FOLLOWUP_DAYS, CRITICAL_DAYS } from "./followup.js";
 import {
   loadContratoTemplate,
   buildContractVars,
@@ -317,17 +324,41 @@ async function main() {
 
   app.get("/api/leads", requireAuth, (req, res) => {
     const status = String(req.query.status || "").trim();
+    const q = String(req.query.q || "").trim();
+    const prioridade = String(req.query.prioridade || "").trim();
     const onlyAtrasados =
       req.query.atrasados === "1" ||
       req.query.atrasados === "true" ||
       req.query.filtro === "atrasados";
-    let leads = db.listLeads(status).map((l) => enrichLead(l));
-    if (onlyAtrasados) leads = leads.filter((l) => l.atrasado);
+    const onlyCriticos =
+      req.query.criticos === "1" ||
+      req.query.criticos === "true" ||
+      req.query.filtro === "criticos";
+    let leads = db.listLeads(status, { q }).map((l) => enrichLead(l));
+    if (PRIORITIES.includes(prioridade)) {
+      leads = leads.filter((l) => (l.prioridade || "media") === prioridade);
+    }
+    if (onlyCriticos) leads = leads.filter((l) => l.critico);
+    else if (onlyAtrasados) leads = leads.filter((l) => l.atrasado);
+
+    const tagMap = db.tagsByLeadIds(leads.map((l) => l.id));
+    leads = leads.map((lead) => ({
+      ...lead,
+      tags: tagMap[lead.id] || [],
+      tarefas_abertas: db.countOpenTasks(lead.id),
+    }));
+
+    const overdue = db.listOverdueLeads(FOLLOWUP_DAYS).map((l) => enrichLead(l));
     res.json({
       leads,
       statuses: STATUSES,
+      status_labels: STATUS_LABELS,
+      priorities: PRIORITIES,
+      priority_labels: PRIORITY_LABELS,
       followup_days: FOLLOWUP_DAYS,
-      atrasados_count: db.listOverdueLeads(FOLLOWUP_DAYS).length,
+      critical_days: CRITICAL_DAYS,
+      atrasados_count: overdue.length,
+      criticos_count: overdue.filter((l) => l.critico).length,
     });
   });
 
@@ -335,10 +366,26 @@ async function main() {
     const leads = db.listOverdueLeads(FOLLOWUP_DAYS).map((l) => enrichLead(l));
     res.json({
       followup_days: FOLLOWUP_DAYS,
+      critical_days: CRITICAL_DAYS,
       count: leads.length,
+      criticos_count: leads.filter((l) => l.critico).length,
       leads,
       last_check: db.getSetting("followup_last_check")?.value || null,
     });
+  });
+
+  app.get("/api/tags", requireAuth, (_req, res) => {
+    res.json({ tags: db.listTags() });
+  });
+
+  app.post("/api/tags", requireAuth, (req, res) => {
+    const name = String(req.body?.name || "").trim();
+    const color = String(req.body?.color || "#b38b3c").trim() || "#b38b3c";
+    if (name.length < 2) {
+      return res.status(400).json({ error: "Informe um nome de tag." });
+    }
+    const tag = db.createTag(name, color);
+    res.status(201).json({ tag });
   });
 
   app.get("/api/leads/:id", requireAuth, (req, res) => {
@@ -357,15 +404,82 @@ async function main() {
     }));
     const contracts = db.listContracts(id);
     const chat = db.listChatByLead(id);
+    const tags = db.listLeadTags(id);
+    const tasks = db.listTasks(id);
     res.json({
-      lead,
+      lead: { ...lead, tags, tarefas_abertas: tasks.filter((t) => !t.done).length },
       notes,
       documents,
       contracts,
       chat,
+      tags,
+      tasks,
       next: nextStatus(lead.status),
       consulta_valor: db.getConsultaValor(),
+      status_labels: STATUS_LABELS,
+      priority_labels: PRIORITY_LABELS,
+      statuses: STATUSES,
+      priorities: PRIORITIES,
     });
+  });
+
+  app.post("/api/leads/:id/priority", requireAuth, (req, res) => {
+    const id = Number(req.params.id);
+    const prioridade = String(req.body?.prioridade || "").trim();
+    if (!PRIORITIES.includes(prioridade)) {
+      return res.status(400).json({ error: "Prioridade inválida." });
+    }
+    const lead = db.getLead(id);
+    if (!lead) return res.status(404).json({ error: "Lead não encontrado." });
+    const updated = db.setLeadPriority(id, prioridade);
+    res.json({ lead: enrichLead(updated) });
+  });
+
+  app.put("/api/leads/:id/tags", requireAuth, (req, res) => {
+    const id = Number(req.params.id);
+    const lead = db.getLead(id);
+    if (!lead) return res.status(404).json({ error: "Lead não encontrado." });
+    const tagIds = Array.isArray(req.body?.tag_ids) ? req.body.tag_ids : [];
+    const tags = db.setLeadTags(id, tagIds);
+    res.json({ tags });
+  });
+
+  app.get("/api/leads/:id/tasks", requireAuth, (req, res) => {
+    const id = Number(req.params.id);
+    const lead = db.getLead(id);
+    if (!lead) return res.status(404).json({ error: "Lead não encontrado." });
+    res.json({ tasks: db.listTasks(id) });
+  });
+
+  app.post("/api/leads/:id/tasks", requireAuth, (req, res) => {
+    const id = Number(req.params.id);
+    const lead = db.getLead(id);
+    if (!lead) return res.status(404).json({ error: "Lead não encontrado." });
+    const titulo = String(req.body?.titulo || "").trim();
+    const dueAt = req.body?.due_at ? String(req.body.due_at) : null;
+    const task = db.addTask(id, titulo, dueAt);
+    if (!task) return res.status(400).json({ error: "Informe o título da tarefa." });
+    res.status(201).json({ task });
+  });
+
+  app.post("/api/leads/:id/tasks/:taskId/done", requireAuth, (req, res) => {
+    const leadId = Number(req.params.id);
+    const taskId = Number(req.params.taskId);
+    const done = req.body?.done !== false && req.body?.done !== 0;
+    const task = db.setTaskDone(taskId, done);
+    if (!task || task.lead_id !== leadId) {
+      return res.status(404).json({ error: "Tarefa não encontrada." });
+    }
+    res.json({ task });
+  });
+
+  app.delete("/api/leads/:id/tasks/:taskId", requireAuth, (req, res) => {
+    const leadId = Number(req.params.id);
+    const taskId = Number(req.params.taskId);
+    const existing = db.listTasks(leadId).find((t) => t.id === taskId);
+    if (!existing) return res.status(404).json({ error: "Tarefa não encontrada." });
+    db.deleteTask(taskId);
+    res.json({ ok: true });
   });
 
   app.post("/api/leads/:id/advance", requireAuth, (req, res) => {

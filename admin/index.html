@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Leads · Painel CVL</title>
+  <title>CRM · Cavalcante e Valduga</title>
   <meta name="robots" content="noindex,nofollow" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./admin.css?v=20261109d" />
+  <link rel="stylesheet" href="./admin.css?v=20261110a" />
 </head>
 <body class="app">
   <header class="top">
     <div class="top__row">
-      <a class="brand" href="./index.html">CVL · <span>Kanban</span></a>
+      <a class="brand" href="./index.html">CVL · <span>CRM</span></a>
       <div class="kpis" id="stats-box" aria-label="Resumo">
         <div class="kpi"><span>Entraram</span><strong id="st-total">—</strong></div>
         <div class="kpi"><span>Fechados</span><strong id="st-fechados">—</strong></div>
@@ -22,10 +22,6 @@
         <div class="kpi"><span>Média</span><strong id="st-media">—</strong></div>
       </div>
       <div class="top__actions">
-        <button type="button" class="btn btn--ghost btn--sm" id="btn-atrasados">
-          Só atrasados (<span id="atrasados-count">0</span>)
-        </button>
-        <button type="button" class="btn btn--ghost btn--sm" id="btn-todos" hidden>Ver todos</button>
         <a class="btn btn--ghost btn--sm" href="./configuracoes.html">Configurações</a>
         <span class="top__meta" id="user-label">…</span>
         <button type="button" class="btn btn--ghost btn--sm" id="btn-logout">Sair</button>
@@ -33,43 +29,137 @@
     </div>
   </header>
 
-  <main class="workspace">
-    <section class="board-pane" aria-label="Quadro kanban">
+  <div class="toolbar" data-page-sticky>
+    <div class="toolbar__left">
+      <div class="view-toggle" role="group" aria-label="Modo de visualização">
+        <button type="button" class="view-toggle__btn is-active" data-view="kanban" id="view-kanban">Kanban</button>
+        <button type="button" class="view-toggle__btn" data-view="lista" id="view-lista">Lista</button>
+      </div>
+      <label class="search-box">
+        <span class="sr-only">Buscar</span>
+        <input type="search" id="search-q" placeholder="Buscar nome, WhatsApp, dívida…" autocomplete="off" />
+      </label>
+      <select id="filter-status" class="toolbar-select" aria-label="Estágio">
+        <option value="">Todos os estágios</option>
+      </select>
+      <select id="filter-priority" class="toolbar-select" aria-label="Prioridade">
+        <option value="">Prioridade</option>
+        <option value="alta">Alta</option>
+        <option value="media">Média</option>
+        <option value="baixa">Baixa</option>
+      </select>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-atrasados">
+        Atrasados (<span id="atrasados-count">0</span>)
+      </button>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-criticos">
+        Críticos (<span id="criticos-count">0</span>)
+      </button>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-todos" hidden>Ver todos</button>
+    </div>
+  </div>
+
+  <main class="workspace" id="workspace">
+    <section class="board-pane" aria-label="Leads">
       <div class="kanban" id="kanban-board"></div>
+      <div class="list-pane" id="list-pane" hidden>
+        <div class="list-table-wrap">
+          <table class="list-table">
+            <thead>
+              <tr>
+                <th>Lead</th>
+                <th>WhatsApp</th>
+                <th>Estágio</th>
+                <th>Prioridade</th>
+                <th>Dívida</th>
+                <th>Retorno</th>
+                <th>Tarefas</th>
+              </tr>
+            </thead>
+            <tbody id="list-body"></tbody>
+          </table>
+        </div>
+      </div>
       <p class="empty board-empty" id="leads-empty" hidden>Nenhum lead neste filtro.</p>
       <div class="stage-times" id="st-stages" hidden></div>
     </section>
 
+    <div class="panel-resize" id="panel-resize" title="Arraste para mudar a largura · 2 cliques volta ao padrão" aria-hidden="true"></div>
+
     <aside class="detail-pane card" id="detail-card">
-      <div class="card__head">Ficha do lead</div>
+      <div class="card__head">
+        <span>Painel do lead</span>
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-open-ficha" hidden>Abrir ficha</button>
+      </div>
       <div class="detail-scroll">
-        <div class="placeholder" id="detail-empty">Clique num card para abrir a ficha.</div>
+        <div class="placeholder" id="detail-empty">1 clique no card abre o resumo. 2 cliques abre a ficha completa.</div>
         <div class="detail" id="detail" hidden>
           <div class="detail__hero">
             <h2 class="detail__title" id="d-nome">—</h2>
             <div class="detail__chips">
               <span id="d-status" class="badge">—</span>
+              <span id="d-prioridade" class="badge badge--prio">—</span>
               <span id="d-atraso-wrap" hidden><span class="badge badge--atrasado" id="d-atraso">—</span></span>
             </div>
           </div>
 
-          <dl class="facts">
-            <div><dt>WhatsApp</dt><dd id="d-fone">—</dd></div>
-            <div><dt>E-mail</dt><dd id="d-email">—</dd></div>
-            <div><dt>Faixa</dt><dd id="d-faixa">—</dd></div>
-            <div><dt>Tipo</dt><dd id="d-tipo">—</dd></div>
-            <div><dt>Situação</dt><dd id="d-situacao">—</dd></div>
-            <div><dt>Local</dt><dd id="d-local">—</dd></div>
-            <div><dt>Cultura</dt><dd id="d-cultura">—</dd></div>
-            <div><dt>Porte</dt><dd id="d-porte">—</dd></div>
-            <div><dt>Entrada</dt><dd id="d-entrada">—</dd></div>
-            <div><dt>Última interação</dt><dd id="d-interacao">—</dd></div>
-          </dl>
+          <section class="panel-section">
+            <p class="eyebrow">Contato</p>
+            <dl class="facts">
+              <div><dt>WhatsApp</dt><dd id="d-fone">—</dd></div>
+              <div><dt>E-mail</dt><dd id="d-email">—</dd></div>
+              <div><dt>Entrada</dt><dd id="d-entrada">—</dd></div>
+              <div><dt>Última interação</dt><dd id="d-interacao">—</dd></div>
+            </dl>
+          </section>
+
+          <section class="panel-section">
+            <p class="eyebrow">Dívida rural</p>
+            <dl class="facts">
+              <div><dt>Faixa</dt><dd id="d-faixa">—</dd></div>
+              <div><dt>Tipo</dt><dd id="d-tipo">—</dd></div>
+              <div><dt>Situação</dt><dd id="d-situacao">—</dd></div>
+              <div><dt>Local</dt><dd id="d-local">—</dd></div>
+              <div><dt>Cultura</dt><dd id="d-cultura">—</dd></div>
+              <div><dt>Porte</dt><dd id="d-porte">—</dd></div>
+            </dl>
+          </section>
+
+          <section class="panel-section">
+            <p class="eyebrow">Estágio e prioridade</p>
+            <div class="field-row">
+              <label>Estágio
+                <select id="d-status-select" class="toolbar-select toolbar-select--block"></select>
+              </label>
+              <label>Prioridade
+                <select id="d-prio-select" class="toolbar-select toolbar-select--block">
+                  <option value="alta">Alta</option>
+                  <option value="media">Média</option>
+                  <option value="baixa">Baixa</option>
+                </select>
+              </label>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn" id="btn-advance">Avançar estágio</button>
+              <button type="button" class="btn btn--danger btn--sm" id="btn-lost">Marcar perdido</button>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <p class="eyebrow">Tags</p>
+            <div class="tags-box" id="tags-box"></div>
+          </section>
+
+          <section class="panel-section">
+            <p class="eyebrow">Tarefas</p>
+            <div class="task-add">
+              <input id="task-title" maxlength="160" placeholder="Ex.: Ligar amanhã 9h" />
+              <button type="button" class="btn btn--sm" id="btn-task">Adicionar</button>
+            </div>
+            <div class="tasks__list" id="tasks-list"></div>
+          </section>
 
           <div class="actions">
-            <button type="button" class="btn" id="btn-advance">Avançar estágio</button>
             <button type="button" class="btn btn--ghost btn--sm" id="btn-contract-toggle">Gerar contrato</button>
-            <button type="button" class="btn btn--danger btn--sm" id="btn-lost">Marcar perdido</button>
           </div>
 
           <div class="contract-box" id="contract-box" hidden>
@@ -124,6 +214,14 @@
     </aside>
   </main>
 
-  <script src="./admin.js?v=20261109d" defer></script>
+  <dialog class="ficha-dialog" id="ficha-dialog">
+    <div class="ficha-dialog__bar" data-dialog-drag-handle>
+      <strong id="ficha-title">Ficha do lead</strong>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-ficha-close">Fechar</button>
+    </div>
+    <div class="ficha-dialog__body" id="ficha-body"></div>
+  </dialog>
+
+  <script src="./admin.js?v=20261110a" defer></script>
 </body>
 </html>

@@ -3,5 +3,6 @@ data/*.sqlite
 data/*.sqlite-*
 data/uploads/
 data/contracts/
+data/qa-artifacts/
 .DS_Store
 .env

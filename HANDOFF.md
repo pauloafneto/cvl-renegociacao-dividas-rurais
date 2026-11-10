@@ -1,6 +1,8 @@
 # Handoff — CRM CVL (dívidas rurais)
 
-Projeto para o amigo continuar: landing + painel de leads + prévia + contrato PDF + assistente de IA.
+Projeto para o amigo continuar: landing + CRM (kanban/lista, painel, tags, tarefas) + prévia + contrato PDF + assistente de IA.
+
+Evolução planejada: ver `PLANO-CRM-AVANCADO.md` (reaproveita padrões do CRM ImprimeMais, sem misturar com o ERP).
 
 ## Estrutura
 

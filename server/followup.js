@@ -1,4 +1,6 @@
 export const FOLLOWUP_DAYS = 2;
+/** Sem retorno há 7+ dias = crítico (padrão ImprimeMais “deal rotting”). */
+export const CRITICAL_DAYS = 7;
 
 export function parseLeadDate(value) {
   if (!value) return null;
@@ -18,11 +20,15 @@ export function enrichLead(lead, now = new Date()) {
   const base = lead.ultima_interacao || lead.data_entrada;
   const dias = daysSince(base, now);
   const closed = lead.status === "fechado" || lead.status === "perdido";
+  const atrasado = !closed && dias >= FOLLOWUP_DAYS;
+  const critico = !closed && dias >= CRITICAL_DAYS;
   return {
     ...lead,
     ultima_interacao: base,
     dias_sem_retorno: dias,
-    atrasado: !closed && dias >= FOLLOWUP_DAYS,
+    atrasado,
+    critico,
+    prioridade: lead.prioridade || "media",
   };
 }
 

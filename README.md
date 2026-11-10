@@ -12,14 +12,17 @@ Servidor Node (`server/`) com:
 
 - Login (senha hasheada com bcrypt)
 - SQLite (`data/cvl.sqlite`, via sql.js) — persiste em disco na pasta `data/`
-- Lista de leads + status + anotações
+- Kanban + lista (mesmo padrão de trabalho do CRM ImprimeMais)
+- 1 clique = painel; 2 cliques = ficha; painel com largura ajustável
+- Busca, filtro por estágio/prioridade, tags e tarefas de follow-up
+- Lead atrasado (2+ dias) e crítico (7+ dias)
 - Upload de documentos + download no painel
 - Valor da consulta editável (`/admin/configuracoes.html`), padrão R$ 497
-- Follow-up (2+ dias sem retorno)
 - Contrato por template PDF (`templates/contrato-consulta.json`)
 - Prévia de diagnóstico (`templates/previa-diagnostico.json`)
 - Resumo de conversão no topo do painel
 - Assistente de IA (chave **vazia** até colar — ver `HANDOFF.md`)
+- Plano de evolução: `PLANO-CRM-AVANCADO.md`
 
 ### Usuário inicial (trocar depois)
 
